@@ -2631,10 +2631,11 @@ class GatewayClient:
         out_func, err_func, wrn_func = self.get_output_functions(args)
 
         if args.host_nqn == "*":
-            self.cli.parser.error("Must specify a specific host NQN")
+            self.cli.parser.error("Must specify a specific host NQN or none")
 
         req = pb2.get_connection_io_statistics_req(subsystem_nqn=args.subsystem,
-                                                   host_nqn=args.host_nqn, reset=False)
+                                                   host_nqn=args.host_nqn, reset=False,
+                                                   verbose=args.verbose)
         try:
             ret = self.stub.get_connection_io_statistics(req)
         except Exception as ex:
@@ -2654,7 +2655,9 @@ class GatewayClient:
                     return ret.status
 
                 table_format = "fancy_grid" if args.format == "text" else "plain"
-                out_func(f"IO statistics for host {args.host_nqn} on {args.subsystem}:\n")
+                hostmsg = f"host {args.host_nqn}" if args.host_nqn else "all hosts"
+                subsysmsg = args.subsystem if args.subsystem else "all subsystems"
+                out_func(f"IO statistics for {hostmsg} on {subsysmsg}:\n")
                 stats_list = []
                 for bucket in ret.buckets:
                     rd = bucket.read
@@ -2706,10 +2709,11 @@ class GatewayClient:
         out_func, err_func, wrn_func = self.get_output_functions(args)
 
         if args.host_nqn == "*":
-            self.cli.parser.error("Must specify a specific host NQN")
+            self.cli.parser.error("Must specify a specific host NQN or none")
 
         req = pb2.get_connection_io_statistics_req(subsystem_nqn=args.subsystem,
-                                                   host_nqn=args.host_nqn, reset=True)
+                                                   host_nqn=args.host_nqn, reset=True,
+                                                   verbose=args.verbose)
         try:
             ret = self.stub.get_connection_io_statistics(req)
         except Exception as ex:
@@ -2752,22 +2756,28 @@ class GatewayClient:
     get_io_statistics_args = [
         argument("--subsystem",
                  "-n",
-                 help="Subsystem NQN",
-                 required=True),
+                 help="Subsystem NQN"),
         argument("--host-nqn",
                  "-t",
-                 help="Host NQN",
-                 required=True),
+                 help="Host NQN"),
+        argument("--verbose",
+                 "-v",
+                 help="Enable verbose per-bucket statistics",
+                 action='store_true',
+                 required=False),
     ]
     reset_io_statistics_args = [
         argument("--subsystem",
                  "-n",
-                 help="Subsystem NQN",
-                 required=True),
+                 help="Subsystem NQN"),
         argument("--host-nqn",
                  "-t",
-                 help="Host NQN",
-                 required=True),
+                 help="Host NQN"),
+        argument("--verbose",
+                 "-v",
+                 help="Enable verbose per-bucket statistics",
+                 action='store_true',
+                 required=False),
     ]
     connection_actions = []
     connection_actions.append({"name": "list",

@@ -416,6 +416,7 @@ message get_connection_io_statistics_req {
 	string subsystem_nqn = 1;
 	string host_nqn = 2;
 	optional bool reset = 3;
+	optional bool verbose = 4;
 }
 
 message remove_host_req {
@@ -758,6 +759,7 @@ message connection_io_statistics {
 	string host_nqn = 4;
 	optional uint64 total_num_ios = 5;
 	repeated bucket_info buckets = 6;
+	optional string category = 7;
 }
 
 message hosts_info {
