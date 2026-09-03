@@ -2483,6 +2483,7 @@ type GetConnectionIoStatisticsReq struct {
 	SubsystemNqn  string                 `protobuf:"bytes,1,opt,name=subsystem_nqn,json=subsystemNqn,proto3" json:"subsystem_nqn,omitempty"`
 	HostNqn       string                 `protobuf:"bytes,2,opt,name=host_nqn,json=hostNqn,proto3" json:"host_nqn,omitempty"`
 	Reset_        *bool                  `protobuf:"varint,3,opt,name=reset,proto3,oneof" json:"reset,omitempty"`
+	Verbose       *bool                  `protobuf:"varint,4,opt,name=verbose,proto3,oneof" json:"verbose,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2534,6 +2535,13 @@ func (x *GetConnectionIoStatisticsReq) GetHostNqn() string {
 func (x *GetConnectionIoStatisticsReq) GetReset_() bool {
 	if x != nil && x.Reset_ != nil {
 		return *x.Reset_
+	}
+	return false
+}
+
+func (x *GetConnectionIoStatisticsReq) GetVerbose() bool {
+	if x != nil && x.Verbose != nil {
+		return *x.Verbose
 	}
 	return false
 }
@@ -5614,21 +5622,135 @@ func (x *BucketInfo) GetWrite() *LatencyGroup {
 	return nil
 }
 
-type ConnectionIoStatistics struct {
+type ControllerStatistics struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        int32                  `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	ErrorMessage  string                 `protobuf:"bytes,2,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
-	SubsystemNqn  string                 `protobuf:"bytes,3,opt,name=subsystem_nqn,json=subsystemNqn,proto3" json:"subsystem_nqn,omitempty"`
-	HostNqn       string                 `protobuf:"bytes,4,opt,name=host_nqn,json=hostNqn,proto3" json:"host_nqn,omitempty"`
-	TotalNumIos   *uint64                `protobuf:"varint,5,opt,name=total_num_ios,json=totalNumIos,proto3,oneof" json:"total_num_ios,omitempty"`
-	Buckets       []*BucketInfo          `protobuf:"bytes,6,rep,name=buckets,proto3" json:"buckets,omitempty"`
+	TotalNumIos   uint64                 `protobuf:"varint,1,opt,name=total_num_ios,json=totalNumIos,proto3" json:"total_num_ios,omitempty"`
+	Buckets       []*BucketInfo          `protobuf:"bytes,2,rep,name=buckets,proto3" json:"buckets,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
+func (x *ControllerStatistics) Reset() {
+	*x = ControllerStatistics{}
+	mi := &file_gateway_proto_msgTypes[78]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ControllerStatistics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ControllerStatistics) ProtoMessage() {}
+
+func (x *ControllerStatistics) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_proto_msgTypes[78]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ControllerStatistics.ProtoReflect.Descriptor instead.
+func (*ControllerStatistics) Descriptor() ([]byte, []int) {
+	return file_gateway_proto_rawDescGZIP(), []int{78}
+}
+
+func (x *ControllerStatistics) GetTotalNumIos() uint64 {
+	if x != nil {
+		return x.TotalNumIos
+	}
+	return 0
+}
+
+func (x *ControllerStatistics) GetBuckets() []*BucketInfo {
+	if x != nil {
+		return x.Buckets
+	}
+	return nil
+}
+
+type StatisticsEntry struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	SubsystemNqn    *string                `protobuf:"bytes,1,opt,name=subsystem_nqn,json=subsystemNqn,proto3,oneof" json:"subsystem_nqn,omitempty"`
+	HostNqn         *string                `protobuf:"bytes,2,opt,name=host_nqn,json=hostNqn,proto3,oneof" json:"host_nqn,omitempty"`
+	ControllerStats *ControllerStatistics  `protobuf:"bytes,3,opt,name=controller_stats,json=controllerStats,proto3" json:"controller_stats,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *StatisticsEntry) Reset() {
+	*x = StatisticsEntry{}
+	mi := &file_gateway_proto_msgTypes[79]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StatisticsEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StatisticsEntry) ProtoMessage() {}
+
+func (x *StatisticsEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_proto_msgTypes[79]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StatisticsEntry.ProtoReflect.Descriptor instead.
+func (*StatisticsEntry) Descriptor() ([]byte, []int) {
+	return file_gateway_proto_rawDescGZIP(), []int{79}
+}
+
+func (x *StatisticsEntry) GetSubsystemNqn() string {
+	if x != nil && x.SubsystemNqn != nil {
+		return *x.SubsystemNqn
+	}
+	return ""
+}
+
+func (x *StatisticsEntry) GetHostNqn() string {
+	if x != nil && x.HostNqn != nil {
+		return *x.HostNqn
+	}
+	return ""
+}
+
+func (x *StatisticsEntry) GetControllerStats() *ControllerStatistics {
+	if x != nil {
+		return x.ControllerStats
+	}
+	return nil
+}
+
+type ConnectionIoStatistics struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	Status                 int32                  `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	ErrorMessage           string                 `protobuf:"bytes,2,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	DeprecatedSubsystemNqn string                 `protobuf:"bytes,3,opt,name=deprecated_subsystem_nqn,json=deprecatedSubsystemNqn,proto3" json:"deprecated_subsystem_nqn,omitempty"`
+	DeprecatedHostNqn      string                 `protobuf:"bytes,4,opt,name=deprecated_host_nqn,json=deprecatedHostNqn,proto3" json:"deprecated_host_nqn,omitempty"`
+	DeprecatedTotalNumIos  *uint64                `protobuf:"varint,5,opt,name=deprecated_total_num_ios,json=deprecatedTotalNumIos,proto3,oneof" json:"deprecated_total_num_ios,omitempty"`
+	DeprecatedBuckets      []*BucketInfo          `protobuf:"bytes,6,rep,name=deprecated_buckets,json=deprecatedBuckets,proto3" json:"deprecated_buckets,omitempty"`
+	Category               *string                `protobuf:"bytes,7,opt,name=category,proto3,oneof" json:"category,omitempty"`
+	StatisticsEntries      []*StatisticsEntry     `protobuf:"bytes,8,rep,name=statistics_entries,json=statisticsEntries,proto3" json:"statistics_entries,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
 func (x *ConnectionIoStatistics) Reset() {
 	*x = ConnectionIoStatistics{}
-	mi := &file_gateway_proto_msgTypes[78]
+	mi := &file_gateway_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5640,7 +5762,7 @@ func (x *ConnectionIoStatistics) String() string {
 func (*ConnectionIoStatistics) ProtoMessage() {}
 
 func (x *ConnectionIoStatistics) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[78]
+	mi := &file_gateway_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5653,7 +5775,7 @@ func (x *ConnectionIoStatistics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectionIoStatistics.ProtoReflect.Descriptor instead.
 func (*ConnectionIoStatistics) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{78}
+	return file_gateway_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *ConnectionIoStatistics) GetStatus() int32 {
@@ -5670,30 +5792,44 @@ func (x *ConnectionIoStatistics) GetErrorMessage() string {
 	return ""
 }
 
-func (x *ConnectionIoStatistics) GetSubsystemNqn() string {
+func (x *ConnectionIoStatistics) GetDeprecatedSubsystemNqn() string {
 	if x != nil {
-		return x.SubsystemNqn
+		return x.DeprecatedSubsystemNqn
 	}
 	return ""
 }
 
-func (x *ConnectionIoStatistics) GetHostNqn() string {
+func (x *ConnectionIoStatistics) GetDeprecatedHostNqn() string {
 	if x != nil {
-		return x.HostNqn
+		return x.DeprecatedHostNqn
 	}
 	return ""
 }
 
-func (x *ConnectionIoStatistics) GetTotalNumIos() uint64 {
-	if x != nil && x.TotalNumIos != nil {
-		return *x.TotalNumIos
+func (x *ConnectionIoStatistics) GetDeprecatedTotalNumIos() uint64 {
+	if x != nil && x.DeprecatedTotalNumIos != nil {
+		return *x.DeprecatedTotalNumIos
 	}
 	return 0
 }
 
-func (x *ConnectionIoStatistics) GetBuckets() []*BucketInfo {
+func (x *ConnectionIoStatistics) GetDeprecatedBuckets() []*BucketInfo {
 	if x != nil {
-		return x.Buckets
+		return x.DeprecatedBuckets
+	}
+	return nil
+}
+
+func (x *ConnectionIoStatistics) GetCategory() string {
+	if x != nil && x.Category != nil {
+		return *x.Category
+	}
+	return ""
+}
+
+func (x *ConnectionIoStatistics) GetStatisticsEntries() []*StatisticsEntry {
+	if x != nil {
+		return x.StatisticsEntries
 	}
 	return nil
 }
@@ -5711,7 +5847,7 @@ type HostsInfo struct {
 
 func (x *HostsInfo) Reset() {
 	*x = HostsInfo{}
-	mi := &file_gateway_proto_msgTypes[79]
+	mi := &file_gateway_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5723,7 +5859,7 @@ func (x *HostsInfo) String() string {
 func (*HostsInfo) ProtoMessage() {}
 
 func (x *HostsInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[79]
+	mi := &file_gateway_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5736,7 +5872,7 @@ func (x *HostsInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HostsInfo.ProtoReflect.Descriptor instead.
 func (*HostsInfo) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{79}
+	return file_gateway_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *HostsInfo) GetStatus() int32 {
@@ -5797,7 +5933,7 @@ type Connection struct {
 
 func (x *Connection) Reset() {
 	*x = Connection{}
-	mi := &file_gateway_proto_msgTypes[80]
+	mi := &file_gateway_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5809,7 +5945,7 @@ func (x *Connection) String() string {
 func (*Connection) ProtoMessage() {}
 
 func (x *Connection) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[80]
+	mi := &file_gateway_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5822,7 +5958,7 @@ func (x *Connection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Connection.ProtoReflect.Descriptor instead.
 func (*Connection) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{80}
+	return file_gateway_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *Connection) GetNqn() string {
@@ -5942,7 +6078,7 @@ type ConnectionsInfo struct {
 
 func (x *ConnectionsInfo) Reset() {
 	*x = ConnectionsInfo{}
-	mi := &file_gateway_proto_msgTypes[81]
+	mi := &file_gateway_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5954,7 +6090,7 @@ func (x *ConnectionsInfo) String() string {
 func (*ConnectionsInfo) ProtoMessage() {}
 
 func (x *ConnectionsInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[81]
+	mi := &file_gateway_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5967,7 +6103,7 @@ func (x *ConnectionsInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectionsInfo.ProtoReflect.Descriptor instead.
 func (*ConnectionsInfo) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{81}
+	return file_gateway_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *ConnectionsInfo) GetStatus() int32 {
@@ -6033,7 +6169,7 @@ type NamespaceCli struct {
 
 func (x *NamespaceCli) Reset() {
 	*x = NamespaceCli{}
-	mi := &file_gateway_proto_msgTypes[82]
+	mi := &file_gateway_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6045,7 +6181,7 @@ func (x *NamespaceCli) String() string {
 func (*NamespaceCli) ProtoMessage() {}
 
 func (x *NamespaceCli) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[82]
+	mi := &file_gateway_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6058,7 +6194,7 @@ func (x *NamespaceCli) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NamespaceCli.ProtoReflect.Descriptor instead.
 func (*NamespaceCli) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{82}
+	return file_gateway_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *NamespaceCli) GetNsid() uint32 {
@@ -6262,7 +6398,7 @@ type NamespacesInfo struct {
 
 func (x *NamespacesInfo) Reset() {
 	*x = NamespacesInfo{}
-	mi := &file_gateway_proto_msgTypes[83]
+	mi := &file_gateway_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6274,7 +6410,7 @@ func (x *NamespacesInfo) String() string {
 func (*NamespacesInfo) ProtoMessage() {}
 
 func (x *NamespacesInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[83]
+	mi := &file_gateway_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6287,7 +6423,7 @@ func (x *NamespacesInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NamespacesInfo.ProtoReflect.Descriptor instead.
 func (*NamespacesInfo) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{83}
+	return file_gateway_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *NamespacesInfo) GetStatus() int32 {
@@ -6328,7 +6464,7 @@ type NamespaceIoError struct {
 
 func (x *NamespaceIoError) Reset() {
 	*x = NamespaceIoError{}
-	mi := &file_gateway_proto_msgTypes[84]
+	mi := &file_gateway_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6340,7 +6476,7 @@ func (x *NamespaceIoError) String() string {
 func (*NamespaceIoError) ProtoMessage() {}
 
 func (x *NamespaceIoError) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[84]
+	mi := &file_gateway_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6353,7 +6489,7 @@ func (x *NamespaceIoError) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NamespaceIoError.ProtoReflect.Descriptor instead.
 func (*NamespaceIoError) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{84}
+	return file_gateway_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *NamespaceIoError) GetName() string {
@@ -6383,7 +6519,7 @@ type ListNamespacesIoStatsInfo struct {
 
 func (x *ListNamespacesIoStatsInfo) Reset() {
 	*x = ListNamespacesIoStatsInfo{}
-	mi := &file_gateway_proto_msgTypes[85]
+	mi := &file_gateway_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6395,7 +6531,7 @@ func (x *ListNamespacesIoStatsInfo) String() string {
 func (*ListNamespacesIoStatsInfo) ProtoMessage() {}
 
 func (x *ListNamespacesIoStatsInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[85]
+	mi := &file_gateway_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6408,7 +6544,7 @@ func (x *ListNamespacesIoStatsInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNamespacesIoStatsInfo.ProtoReflect.Descriptor instead.
 func (*ListNamespacesIoStatsInfo) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{85}
+	return file_gateway_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *ListNamespacesIoStatsInfo) GetStatus() int32 {
@@ -6476,7 +6612,7 @@ type BdevIoStatsInfo struct {
 
 func (x *BdevIoStatsInfo) Reset() {
 	*x = BdevIoStatsInfo{}
-	mi := &file_gateway_proto_msgTypes[86]
+	mi := &file_gateway_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6488,7 +6624,7 @@ func (x *BdevIoStatsInfo) String() string {
 func (*BdevIoStatsInfo) ProtoMessage() {}
 
 func (x *BdevIoStatsInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[86]
+	mi := &file_gateway_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6501,7 +6637,7 @@ func (x *BdevIoStatsInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BdevIoStatsInfo.ProtoReflect.Descriptor instead.
 func (*BdevIoStatsInfo) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{86}
+	return file_gateway_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *BdevIoStatsInfo) GetBdevName() string {
@@ -6693,7 +6829,7 @@ type NamespaceIoStatsInfo struct {
 
 func (x *NamespaceIoStatsInfo) Reset() {
 	*x = NamespaceIoStatsInfo{}
-	mi := &file_gateway_proto_msgTypes[87]
+	mi := &file_gateway_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6705,7 +6841,7 @@ func (x *NamespaceIoStatsInfo) String() string {
 func (*NamespaceIoStatsInfo) ProtoMessage() {}
 
 func (x *NamespaceIoStatsInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[87]
+	mi := &file_gateway_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6718,7 +6854,7 @@ func (x *NamespaceIoStatsInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NamespaceIoStatsInfo.ProtoReflect.Descriptor instead.
 func (*NamespaceIoStatsInfo) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{87}
+	return file_gateway_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *NamespaceIoStatsInfo) GetStatus() int32 {
@@ -6920,7 +7056,7 @@ type SpdkLogFlagInfo struct {
 
 func (x *SpdkLogFlagInfo) Reset() {
 	*x = SpdkLogFlagInfo{}
-	mi := &file_gateway_proto_msgTypes[88]
+	mi := &file_gateway_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6932,7 +7068,7 @@ func (x *SpdkLogFlagInfo) String() string {
 func (*SpdkLogFlagInfo) ProtoMessage() {}
 
 func (x *SpdkLogFlagInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[88]
+	mi := &file_gateway_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6945,7 +7081,7 @@ func (x *SpdkLogFlagInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SpdkLogFlagInfo.ProtoReflect.Descriptor instead.
 func (*SpdkLogFlagInfo) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{88}
+	return file_gateway_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *SpdkLogFlagInfo) GetName() string {
@@ -6975,7 +7111,7 @@ type SpdkNvmfLogFlagsAndLevelInfo struct {
 
 func (x *SpdkNvmfLogFlagsAndLevelInfo) Reset() {
 	*x = SpdkNvmfLogFlagsAndLevelInfo{}
-	mi := &file_gateway_proto_msgTypes[89]
+	mi := &file_gateway_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6987,7 +7123,7 @@ func (x *SpdkNvmfLogFlagsAndLevelInfo) String() string {
 func (*SpdkNvmfLogFlagsAndLevelInfo) ProtoMessage() {}
 
 func (x *SpdkNvmfLogFlagsAndLevelInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[89]
+	mi := &file_gateway_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7000,7 +7136,7 @@ func (x *SpdkNvmfLogFlagsAndLevelInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SpdkNvmfLogFlagsAndLevelInfo.ProtoReflect.Descriptor instead.
 func (*SpdkNvmfLogFlagsAndLevelInfo) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{89}
+	return file_gateway_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *SpdkNvmfLogFlagsAndLevelInfo) GetStatus() int32 {
@@ -7049,7 +7185,7 @@ type GatewayLogLevelInfo struct {
 
 func (x *GatewayLogLevelInfo) Reset() {
 	*x = GatewayLogLevelInfo{}
-	mi := &file_gateway_proto_msgTypes[90]
+	mi := &file_gateway_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7061,7 +7197,7 @@ func (x *GatewayLogLevelInfo) String() string {
 func (*GatewayLogLevelInfo) ProtoMessage() {}
 
 func (x *GatewayLogLevelInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[90]
+	mi := &file_gateway_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7074,7 +7210,7 @@ func (x *GatewayLogLevelInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GatewayLogLevelInfo.ProtoReflect.Descriptor instead.
 func (*GatewayLogLevelInfo) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{90}
+	return file_gateway_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *GatewayLogLevelInfo) GetStatus() int32 {
@@ -7108,7 +7244,7 @@ type EncryptionEntry struct {
 
 func (x *EncryptionEntry) Reset() {
 	*x = EncryptionEntry{}
-	mi := &file_gateway_proto_msgTypes[91]
+	mi := &file_gateway_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7120,7 +7256,7 @@ func (x *EncryptionEntry) String() string {
 func (*EncryptionEntry) ProtoMessage() {}
 
 func (x *EncryptionEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_proto_msgTypes[91]
+	mi := &file_gateway_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7133,7 +7269,7 @@ func (x *EncryptionEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EncryptionEntry.ProtoReflect.Descriptor instead.
 func (*EncryptionEntry) Descriptor() ([]byte, []int) {
-	return file_gateway_proto_rawDescGZIP(), []int{91}
+	return file_gateway_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *EncryptionEntry) GetFormat() EncryptionFormat {
@@ -7383,12 +7519,15 @@ const file_gateway_proto_rawDesc = "" +
 	"dhchap_key\x18\x03 \x01(\tH\x00R\tdhchapKey\x88\x01\x01\x12-\n" +
 	"\x10dhchap_ctrlr_key\x18\x04 \x01(\tH\x01R\x0edhchapCtrlrKey\x88\x01\x01B\r\n" +
 	"\v_dhchap_keyB\x13\n" +
-	"\x11_dhchap_ctrlr_key\"\x87\x01\n" +
+	"\x11_dhchap_ctrlr_key\"\xb2\x01\n" +
 	" get_connection_io_statistics_req\x12#\n" +
 	"\rsubsystem_nqn\x18\x01 \x01(\tR\fsubsystemNqn\x12\x19\n" +
 	"\bhost_nqn\x18\x02 \x01(\tR\ahostNqn\x12\x19\n" +
-	"\x05reset\x18\x03 \x01(\bH\x00R\x05reset\x88\x01\x01B\b\n" +
-	"\x06_reset\"\xbb\x01\n" +
+	"\x05reset\x18\x03 \x01(\bH\x00R\x05reset\x88\x01\x01\x12\x1d\n" +
+	"\averbose\x18\x04 \x01(\bH\x01R\averbose\x88\x01\x01B\b\n" +
+	"\x06_resetB\n" +
+	"\n" +
+	"\b_verbose\"\xbb\x01\n" +
 	"\x0fremove_host_req\x12#\n" +
 	"\rsubsystem_nqn\x18\x01 \x01(\tR\fsubsystemNqn\x12\x19\n" +
 	"\bhost_nqn\x18\x02 \x01(\tR\ahostNqn\x12\x19\n" +
@@ -7694,15 +7833,27 @@ const file_gateway_proto_rawDesc = "" +
 	"\vbucket_info\x12\x12\n" +
 	"\x04size\x18\x01 \x01(\rR\x04size\x12\"\n" +
 	"\x04read\x18\x02 \x01(\v2\x0e.latency_groupR\x04read\x12$\n" +
-	"\x05write\x18\x03 \x01(\v2\x0e.latency_groupR\x05write\"\xfa\x01\n" +
+	"\x05write\x18\x03 \x01(\v2\x0e.latency_groupR\x05write\"c\n" +
+	"\x15controller_statistics\x12\"\n" +
+	"\rtotal_num_ios\x18\x01 \x01(\x04R\vtotalNumIos\x12&\n" +
+	"\abuckets\x18\x02 \x03(\v2\f.bucket_infoR\abuckets\"\xbe\x01\n" +
+	"\x10statistics_entry\x12(\n" +
+	"\rsubsystem_nqn\x18\x01 \x01(\tH\x00R\fsubsystemNqn\x88\x01\x01\x12\x1e\n" +
+	"\bhost_nqn\x18\x02 \x01(\tH\x01R\ahostNqn\x88\x01\x01\x12A\n" +
+	"\x10controller_stats\x18\x03 \x01(\v2\x16.controller_statisticsR\x0fcontrollerStatsB\x10\n" +
+	"\x0e_subsystem_nqnB\v\n" +
+	"\t_host_nqn\"\xc9\x03\n" +
 	"\x18connection_io_statistics\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\x05R\x06status\x12#\n" +
-	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage\x12#\n" +
-	"\rsubsystem_nqn\x18\x03 \x01(\tR\fsubsystemNqn\x12\x19\n" +
-	"\bhost_nqn\x18\x04 \x01(\tR\ahostNqn\x12'\n" +
-	"\rtotal_num_ios\x18\x05 \x01(\x04H\x00R\vtotalNumIos\x88\x01\x01\x12&\n" +
-	"\abuckets\x18\x06 \x03(\v2\f.bucket_infoR\abucketsB\x10\n" +
-	"\x0e_total_num_ios\"\xb1\x01\n" +
+	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage\x128\n" +
+	"\x18deprecated_subsystem_nqn\x18\x03 \x01(\tR\x16deprecatedSubsystemNqn\x12.\n" +
+	"\x13deprecated_host_nqn\x18\x04 \x01(\tR\x11deprecatedHostNqn\x12<\n" +
+	"\x18deprecated_total_num_ios\x18\x05 \x01(\x04H\x00R\x15deprecatedTotalNumIos\x88\x01\x01\x12;\n" +
+	"\x12deprecated_buckets\x18\x06 \x03(\v2\f.bucket_infoR\x11deprecatedBuckets\x12\x1f\n" +
+	"\bcategory\x18\a \x01(\tH\x01R\bcategory\x88\x01\x01\x12@\n" +
+	"\x12statistics_entries\x18\b \x03(\v2\x11.statistics_entryR\x11statisticsEntriesB\x1b\n" +
+	"\x19_deprecated_total_num_iosB\v\n" +
+	"\t_category\"\xb1\x01\n" +
 	"\n" +
 	"hosts_info\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\x05R\x06status\x12#\n" +
@@ -7985,7 +8136,7 @@ func file_gateway_proto_rawDescGZIP() []byte {
 }
 
 var file_gateway_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 92)
+var file_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 94)
 var file_gateway_proto_goTypes = []any{
 	(AddressFamily)(0),                           // 0: AddressFamily
 	(LogLevel)(0),                                // 1: LogLevel
@@ -8072,169 +8223,174 @@ var file_gateway_proto_goTypes = []any{
 	(*LatencyStats)(nil),                         // 82: latency_stats
 	(*LatencyGroup)(nil),                         // 83: latency_group
 	(*BucketInfo)(nil),                           // 84: bucket_info
-	(*ConnectionIoStatistics)(nil),               // 85: connection_io_statistics
-	(*HostsInfo)(nil),                            // 86: hosts_info
-	(*Connection)(nil),                           // 87: connection
-	(*ConnectionsInfo)(nil),                      // 88: connections_info
-	(*NamespaceCli)(nil),                         // 89: namespace_cli
-	(*NamespacesInfo)(nil),                       // 90: namespaces_info
-	(*NamespaceIoError)(nil),                     // 91: namespace_io_error
-	(*ListNamespacesIoStatsInfo)(nil),            // 92: list_namespaces_io_stats_info
-	(*BdevIoStatsInfo)(nil),                      // 93: bdev_io_stats_info
-	(*NamespaceIoStatsInfo)(nil),                 // 94: namespace_io_stats_info
-	(*SpdkLogFlagInfo)(nil),                      // 95: spdk_log_flag_info
-	(*SpdkNvmfLogFlagsAndLevelInfo)(nil),         // 96: spdk_nvmf_log_flags_and_level_info
-	(*GatewayLogLevelInfo)(nil),                  // 97: gateway_log_level_info
-	(*EncryptionEntry)(nil),                      // 98: encryption_entry
+	(*ControllerStatistics)(nil),                 // 85: controller_statistics
+	(*StatisticsEntry)(nil),                      // 86: statistics_entry
+	(*ConnectionIoStatistics)(nil),               // 87: connection_io_statistics
+	(*HostsInfo)(nil),                            // 88: hosts_info
+	(*Connection)(nil),                           // 89: connection
+	(*ConnectionsInfo)(nil),                      // 90: connections_info
+	(*NamespaceCli)(nil),                         // 91: namespace_cli
+	(*NamespacesInfo)(nil),                       // 92: namespaces_info
+	(*NamespaceIoError)(nil),                     // 93: namespace_io_error
+	(*ListNamespacesIoStatsInfo)(nil),            // 94: list_namespaces_io_stats_info
+	(*BdevIoStatsInfo)(nil),                      // 95: bdev_io_stats_info
+	(*NamespaceIoStatsInfo)(nil),                 // 96: namespace_io_stats_info
+	(*SpdkLogFlagInfo)(nil),                      // 97: spdk_log_flag_info
+	(*SpdkNvmfLogFlagsAndLevelInfo)(nil),         // 98: spdk_nvmf_log_flags_and_level_info
+	(*GatewayLogLevelInfo)(nil),                  // 99: gateway_log_level_info
+	(*EncryptionEntry)(nil),                      // 100: encryption_entry
 }
 var file_gateway_proto_depIdxs = []int32{
-	98, // 0: namespace_add_req.encryption_entries:type_name -> encryption_entry
-	4,  // 1: namespace_add_req.encryption_algorithm:type_name -> EncryptionAlgorithm
-	28, // 2: add_kmip_server_endpoints_req.endpoints:type_name -> kmip_server_endpoint
-	28, // 3: del_kmip_server_endpoints_req.endpoints:type_name -> kmip_server_endpoint
-	29, // 4: kmip_server_endpoints_info.endpoints:type_name -> kmip_server_endpoint_cli
-	0,  // 5: create_listener_req.adrfam:type_name -> AddressFamily
-	0,  // 6: delete_listener_req.adrfam:type_name -> AddressFamily
-	1,  // 7: set_spdk_nvmf_logs_req.log_level:type_name -> LogLevel
-	1,  // 8: set_spdk_nvmf_logs_req.print_level:type_name -> LogLevel
-	2,  // 9: set_gateway_log_level_req.log_level:type_name -> GwLogLevel
-	6,  // 10: ana_group_state.state:type_name -> ana_state
-	57, // 11: nqn_ana_states.states:type_name -> ana_group_state
-	58, // 12: ana_info.states:type_name -> nqn_ana_states
-	64, // 13: subsystems_info.subsystems:type_name -> subsystem
-	65, // 14: subsystem.listen_addresses:type_name -> listen_address
-	81, // 15: subsystem.hosts:type_name -> host
-	66, // 16: subsystem.namespaces:type_name -> namespace
-	68, // 17: subsystems_info_cli.subsystems:type_name -> subsystem_cli
-	72, // 18: poll_group_info.transports:type_name -> poll_group_transport_info
-	73, // 19: gateway_stats_info.poll_groups:type_name -> poll_group_info
-	76, // 20: thread_stats_info.threads:type_name -> spdk_thread_info
-	0,  // 21: listener_info.adrfam:type_name -> AddressFamily
-	77, // 22: listeners_info.listeners:type_name -> listener_info
-	77, // 23: gateway_listener_info.listener:type_name -> listener_info
-	57, // 24: gateway_listener_info.lb_states:type_name -> ana_group_state
-	79, // 25: gateway_listeners_info.gw_listeners:type_name -> gateway_listener_info
-	5,  // 26: host.dhchap_controller_origin:type_name -> DHCHAPControllerKeyOrigin
-	82, // 27: latency_group.total:type_name -> latency_stats
-	82, // 28: latency_group.bdev:type_name -> latency_stats
-	82, // 29: latency_group.net:type_name -> latency_stats
-	82, // 30: latency_group.qos:type_name -> latency_stats
-	83, // 31: bucket_info.read:type_name -> latency_group
-	83, // 32: bucket_info.write:type_name -> latency_group
-	84, // 33: connection_io_statistics.buckets:type_name -> bucket_info
-	81, // 34: hosts_info.hosts:type_name -> host
-	0,  // 35: connection.adrfam:type_name -> AddressFamily
-	5,  // 36: connection.dhchap_controller_origin:type_name -> DHCHAPControllerKeyOrigin
-	87, // 37: connections_info.connections:type_name -> connection
-	98, // 38: namespace_cli.encryption_entries:type_name -> encryption_entry
-	89, // 39: namespaces_info.namespaces:type_name -> namespace_cli
-	93, // 40: list_namespaces_io_stats_info.namespaces:type_name -> bdev_io_stats_info
-	91, // 41: bdev_io_stats_info.io_error:type_name -> namespace_io_error
-	91, // 42: namespace_io_stats_info.io_error:type_name -> namespace_io_error
-	95, // 43: spdk_nvmf_log_flags_and_level_info.nvmf_log_flags:type_name -> spdk_log_flag_info
-	1,  // 44: spdk_nvmf_log_flags_and_level_info.log_level:type_name -> LogLevel
-	1,  // 45: spdk_nvmf_log_flags_and_level_info.log_print_level:type_name -> LogLevel
-	2,  // 46: gateway_log_level_info.log_level:type_name -> GwLogLevel
-	3,  // 47: encryption_entry.format:type_name -> EncryptionFormat
-	7,  // 48: Gateway.namespace_add:input_type -> namespace_add_req
-	21, // 49: Gateway.create_subsystem:input_type -> create_subsystem_req
-	22, // 50: Gateway.delete_subsystem:input_type -> delete_subsystem_req
-	23, // 51: Gateway.change_subsystem_key:input_type -> change_subsystem_key_req
-	24, // 52: Gateway.add_subsystem_network:input_type -> add_subsystem_network_req
-	25, // 53: Gateway.del_subsystem_network:input_type -> del_subsystem_network_req
-	26, // 54: Gateway.gw_refresh_network:input_type -> gw_refresh_network_req
-	30, // 55: Gateway.add_kmip_server_endpoints:input_type -> add_kmip_server_endpoints_req
-	31, // 56: Gateway.del_kmip_server_endpoints:input_type -> del_kmip_server_endpoints_req
-	32, // 57: Gateway.list_kmip_server_endpoints:input_type -> list_kmip_server_endpoints_req
-	34, // 58: Gateway.list_namespaces:input_type -> list_namespaces_req
-	8,  // 59: Gateway.namespace_resize:input_type -> namespace_resize_req
-	9,  // 60: Gateway.namespace_get_io_stats:input_type -> namespace_get_io_stats_req
-	10, // 61: Gateway.list_namespaces_io_stats:input_type -> list_namespaces_io_stats_req
-	11, // 62: Gateway.namespace_set_qos_limits:input_type -> namespace_set_qos_req
-	12, // 63: Gateway.namespace_change_load_balancing_group:input_type -> namespace_change_load_balancing_group_req
-	13, // 64: Gateway.namespace_change_visibility:input_type -> namespace_change_visibility_req
-	14, // 65: Gateway.namespace_change_location:input_type -> namespace_change_location_req
-	15, // 66: Gateway.namespace_set_rbd_trash_image:input_type -> namespace_set_rbd_trash_image_req
-	16, // 67: Gateway.namespace_set_auto_resize:input_type -> namespace_set_auto_resize_req
-	17, // 68: Gateway.namespace_delete:input_type -> namespace_delete_req
-	18, // 69: Gateway.namespace_add_host:input_type -> namespace_add_host_req
-	19, // 70: Gateway.namespace_delete_host:input_type -> namespace_delete_host_req
-	20, // 71: Gateway.namespace_unpin:input_type -> namespace_unpin_req
-	35, // 72: Gateway.add_host:input_type -> add_host_req
-	38, // 73: Gateway.remove_host:input_type -> remove_host_req
-	39, // 74: Gateway.set_keep_host_connected:input_type -> set_keep_host_connected_req
-	36, // 75: Gateway.change_host_key:input_type -> change_host_key_req
-	40, // 76: Gateway.list_hosts:input_type -> list_hosts_req
-	41, // 77: Gateway.list_connections:input_type -> list_connections_req
-	37, // 78: Gateway.get_connection_io_statistics:input_type -> get_connection_io_statistics_req
-	42, // 79: Gateway.create_listener:input_type -> create_listener_req
-	43, // 80: Gateway.delete_listener:input_type -> delete_listener_req
-	44, // 81: Gateway.list_listeners:input_type -> list_listeners_req
-	45, // 82: Gateway.list_subsystems:input_type -> list_subsystems_req
-	46, // 83: Gateway.get_subsystems:input_type -> get_subsystems_req
-	59, // 84: Gateway.set_ana_state:input_type -> ana_info
-	47, // 85: Gateway.get_spdk_nvmf_log_flags_and_level:input_type -> get_spdk_nvmf_log_flags_and_level_req
-	48, // 86: Gateway.disable_spdk_nvmf_logs:input_type -> disable_spdk_nvmf_logs_req
-	49, // 87: Gateway.set_spdk_nvmf_logs:input_type -> set_spdk_nvmf_logs_req
-	50, // 88: Gateway.get_gateway_info:input_type -> get_gateway_info_req
-	51, // 89: Gateway.get_gateway_log_level:input_type -> get_gateway_log_level_req
-	52, // 90: Gateway.set_gateway_log_level:input_type -> set_gateway_log_level_req
-	53, // 91: Gateway.show_gateway_listeners_info:input_type -> show_gateway_listeners_info_req
-	54, // 92: Gateway.get_gateway_stats:input_type -> get_gateway_stats_req
-	55, // 93: Gateway.get_thread_stats:input_type -> get_thread_stats_req
-	56, // 94: Gateway.set_gateway_io_stats_mode:input_type -> set_gateway_io_stats_mode_req
-	62, // 95: Gateway.namespace_add:output_type -> nsid_status
-	61, // 96: Gateway.create_subsystem:output_type -> subsys_status
-	60, // 97: Gateway.delete_subsystem:output_type -> req_status
-	60, // 98: Gateway.change_subsystem_key:output_type -> req_status
-	60, // 99: Gateway.add_subsystem_network:output_type -> req_status
-	60, // 100: Gateway.del_subsystem_network:output_type -> req_status
-	27, // 101: Gateway.gw_refresh_network:output_type -> gw_refresh_network_status
-	60, // 102: Gateway.add_kmip_server_endpoints:output_type -> req_status
-	60, // 103: Gateway.del_kmip_server_endpoints:output_type -> req_status
-	33, // 104: Gateway.list_kmip_server_endpoints:output_type -> kmip_server_endpoints_info
-	90, // 105: Gateway.list_namespaces:output_type -> namespaces_info
-	60, // 106: Gateway.namespace_resize:output_type -> req_status
-	94, // 107: Gateway.namespace_get_io_stats:output_type -> namespace_io_stats_info
-	92, // 108: Gateway.list_namespaces_io_stats:output_type -> list_namespaces_io_stats_info
-	60, // 109: Gateway.namespace_set_qos_limits:output_type -> req_status
-	60, // 110: Gateway.namespace_change_load_balancing_group:output_type -> req_status
-	60, // 111: Gateway.namespace_change_visibility:output_type -> req_status
-	60, // 112: Gateway.namespace_change_location:output_type -> req_status
-	60, // 113: Gateway.namespace_set_rbd_trash_image:output_type -> req_status
-	60, // 114: Gateway.namespace_set_auto_resize:output_type -> req_status
-	60, // 115: Gateway.namespace_delete:output_type -> req_status
-	60, // 116: Gateway.namespace_add_host:output_type -> req_status
-	60, // 117: Gateway.namespace_delete_host:output_type -> req_status
-	60, // 118: Gateway.namespace_unpin:output_type -> req_status
-	60, // 119: Gateway.add_host:output_type -> req_status
-	60, // 120: Gateway.remove_host:output_type -> req_status
-	60, // 121: Gateway.set_keep_host_connected:output_type -> req_status
-	60, // 122: Gateway.change_host_key:output_type -> req_status
-	86, // 123: Gateway.list_hosts:output_type -> hosts_info
-	88, // 124: Gateway.list_connections:output_type -> connections_info
-	85, // 125: Gateway.get_connection_io_statistics:output_type -> connection_io_statistics
-	60, // 126: Gateway.create_listener:output_type -> req_status
-	60, // 127: Gateway.delete_listener:output_type -> req_status
-	78, // 128: Gateway.list_listeners:output_type -> listeners_info
-	67, // 129: Gateway.list_subsystems:output_type -> subsystems_info_cli
-	63, // 130: Gateway.get_subsystems:output_type -> subsystems_info
-	60, // 131: Gateway.set_ana_state:output_type -> req_status
-	96, // 132: Gateway.get_spdk_nvmf_log_flags_and_level:output_type -> spdk_nvmf_log_flags_and_level_info
-	60, // 133: Gateway.disable_spdk_nvmf_logs:output_type -> req_status
-	60, // 134: Gateway.set_spdk_nvmf_logs:output_type -> req_status
-	69, // 135: Gateway.get_gateway_info:output_type -> gateway_info
-	97, // 136: Gateway.get_gateway_log_level:output_type -> gateway_log_level_info
-	60, // 137: Gateway.set_gateway_log_level:output_type -> req_status
-	80, // 138: Gateway.show_gateway_listeners_info:output_type -> gateway_listeners_info
-	74, // 139: Gateway.get_gateway_stats:output_type -> gateway_stats_info
-	75, // 140: Gateway.get_thread_stats:output_type -> thread_stats_info
-	60, // 141: Gateway.set_gateway_io_stats_mode:output_type -> req_status
-	95, // [95:142] is the sub-list for method output_type
-	48, // [48:95] is the sub-list for method input_type
-	48, // [48:48] is the sub-list for extension type_name
-	48, // [48:48] is the sub-list for extension extendee
-	0,  // [0:48] is the sub-list for field type_name
+	100, // 0: namespace_add_req.encryption_entries:type_name -> encryption_entry
+	4,   // 1: namespace_add_req.encryption_algorithm:type_name -> EncryptionAlgorithm
+	28,  // 2: add_kmip_server_endpoints_req.endpoints:type_name -> kmip_server_endpoint
+	28,  // 3: del_kmip_server_endpoints_req.endpoints:type_name -> kmip_server_endpoint
+	29,  // 4: kmip_server_endpoints_info.endpoints:type_name -> kmip_server_endpoint_cli
+	0,   // 5: create_listener_req.adrfam:type_name -> AddressFamily
+	0,   // 6: delete_listener_req.adrfam:type_name -> AddressFamily
+	1,   // 7: set_spdk_nvmf_logs_req.log_level:type_name -> LogLevel
+	1,   // 8: set_spdk_nvmf_logs_req.print_level:type_name -> LogLevel
+	2,   // 9: set_gateway_log_level_req.log_level:type_name -> GwLogLevel
+	6,   // 10: ana_group_state.state:type_name -> ana_state
+	57,  // 11: nqn_ana_states.states:type_name -> ana_group_state
+	58,  // 12: ana_info.states:type_name -> nqn_ana_states
+	64,  // 13: subsystems_info.subsystems:type_name -> subsystem
+	65,  // 14: subsystem.listen_addresses:type_name -> listen_address
+	81,  // 15: subsystem.hosts:type_name -> host
+	66,  // 16: subsystem.namespaces:type_name -> namespace
+	68,  // 17: subsystems_info_cli.subsystems:type_name -> subsystem_cli
+	72,  // 18: poll_group_info.transports:type_name -> poll_group_transport_info
+	73,  // 19: gateway_stats_info.poll_groups:type_name -> poll_group_info
+	76,  // 20: thread_stats_info.threads:type_name -> spdk_thread_info
+	0,   // 21: listener_info.adrfam:type_name -> AddressFamily
+	77,  // 22: listeners_info.listeners:type_name -> listener_info
+	77,  // 23: gateway_listener_info.listener:type_name -> listener_info
+	57,  // 24: gateway_listener_info.lb_states:type_name -> ana_group_state
+	79,  // 25: gateway_listeners_info.gw_listeners:type_name -> gateway_listener_info
+	5,   // 26: host.dhchap_controller_origin:type_name -> DHCHAPControllerKeyOrigin
+	82,  // 27: latency_group.total:type_name -> latency_stats
+	82,  // 28: latency_group.bdev:type_name -> latency_stats
+	82,  // 29: latency_group.net:type_name -> latency_stats
+	82,  // 30: latency_group.qos:type_name -> latency_stats
+	83,  // 31: bucket_info.read:type_name -> latency_group
+	83,  // 32: bucket_info.write:type_name -> latency_group
+	84,  // 33: controller_statistics.buckets:type_name -> bucket_info
+	85,  // 34: statistics_entry.controller_stats:type_name -> controller_statistics
+	84,  // 35: connection_io_statistics.deprecated_buckets:type_name -> bucket_info
+	86,  // 36: connection_io_statistics.statistics_entries:type_name -> statistics_entry
+	81,  // 37: hosts_info.hosts:type_name -> host
+	0,   // 38: connection.adrfam:type_name -> AddressFamily
+	5,   // 39: connection.dhchap_controller_origin:type_name -> DHCHAPControllerKeyOrigin
+	89,  // 40: connections_info.connections:type_name -> connection
+	100, // 41: namespace_cli.encryption_entries:type_name -> encryption_entry
+	91,  // 42: namespaces_info.namespaces:type_name -> namespace_cli
+	95,  // 43: list_namespaces_io_stats_info.namespaces:type_name -> bdev_io_stats_info
+	93,  // 44: bdev_io_stats_info.io_error:type_name -> namespace_io_error
+	93,  // 45: namespace_io_stats_info.io_error:type_name -> namespace_io_error
+	97,  // 46: spdk_nvmf_log_flags_and_level_info.nvmf_log_flags:type_name -> spdk_log_flag_info
+	1,   // 47: spdk_nvmf_log_flags_and_level_info.log_level:type_name -> LogLevel
+	1,   // 48: spdk_nvmf_log_flags_and_level_info.log_print_level:type_name -> LogLevel
+	2,   // 49: gateway_log_level_info.log_level:type_name -> GwLogLevel
+	3,   // 50: encryption_entry.format:type_name -> EncryptionFormat
+	7,   // 51: Gateway.namespace_add:input_type -> namespace_add_req
+	21,  // 52: Gateway.create_subsystem:input_type -> create_subsystem_req
+	22,  // 53: Gateway.delete_subsystem:input_type -> delete_subsystem_req
+	23,  // 54: Gateway.change_subsystem_key:input_type -> change_subsystem_key_req
+	24,  // 55: Gateway.add_subsystem_network:input_type -> add_subsystem_network_req
+	25,  // 56: Gateway.del_subsystem_network:input_type -> del_subsystem_network_req
+	26,  // 57: Gateway.gw_refresh_network:input_type -> gw_refresh_network_req
+	30,  // 58: Gateway.add_kmip_server_endpoints:input_type -> add_kmip_server_endpoints_req
+	31,  // 59: Gateway.del_kmip_server_endpoints:input_type -> del_kmip_server_endpoints_req
+	32,  // 60: Gateway.list_kmip_server_endpoints:input_type -> list_kmip_server_endpoints_req
+	34,  // 61: Gateway.list_namespaces:input_type -> list_namespaces_req
+	8,   // 62: Gateway.namespace_resize:input_type -> namespace_resize_req
+	9,   // 63: Gateway.namespace_get_io_stats:input_type -> namespace_get_io_stats_req
+	10,  // 64: Gateway.list_namespaces_io_stats:input_type -> list_namespaces_io_stats_req
+	11,  // 65: Gateway.namespace_set_qos_limits:input_type -> namespace_set_qos_req
+	12,  // 66: Gateway.namespace_change_load_balancing_group:input_type -> namespace_change_load_balancing_group_req
+	13,  // 67: Gateway.namespace_change_visibility:input_type -> namespace_change_visibility_req
+	14,  // 68: Gateway.namespace_change_location:input_type -> namespace_change_location_req
+	15,  // 69: Gateway.namespace_set_rbd_trash_image:input_type -> namespace_set_rbd_trash_image_req
+	16,  // 70: Gateway.namespace_set_auto_resize:input_type -> namespace_set_auto_resize_req
+	17,  // 71: Gateway.namespace_delete:input_type -> namespace_delete_req
+	18,  // 72: Gateway.namespace_add_host:input_type -> namespace_add_host_req
+	19,  // 73: Gateway.namespace_delete_host:input_type -> namespace_delete_host_req
+	20,  // 74: Gateway.namespace_unpin:input_type -> namespace_unpin_req
+	35,  // 75: Gateway.add_host:input_type -> add_host_req
+	38,  // 76: Gateway.remove_host:input_type -> remove_host_req
+	39,  // 77: Gateway.set_keep_host_connected:input_type -> set_keep_host_connected_req
+	36,  // 78: Gateway.change_host_key:input_type -> change_host_key_req
+	40,  // 79: Gateway.list_hosts:input_type -> list_hosts_req
+	41,  // 80: Gateway.list_connections:input_type -> list_connections_req
+	37,  // 81: Gateway.get_connection_io_statistics:input_type -> get_connection_io_statistics_req
+	42,  // 82: Gateway.create_listener:input_type -> create_listener_req
+	43,  // 83: Gateway.delete_listener:input_type -> delete_listener_req
+	44,  // 84: Gateway.list_listeners:input_type -> list_listeners_req
+	45,  // 85: Gateway.list_subsystems:input_type -> list_subsystems_req
+	46,  // 86: Gateway.get_subsystems:input_type -> get_subsystems_req
+	59,  // 87: Gateway.set_ana_state:input_type -> ana_info
+	47,  // 88: Gateway.get_spdk_nvmf_log_flags_and_level:input_type -> get_spdk_nvmf_log_flags_and_level_req
+	48,  // 89: Gateway.disable_spdk_nvmf_logs:input_type -> disable_spdk_nvmf_logs_req
+	49,  // 90: Gateway.set_spdk_nvmf_logs:input_type -> set_spdk_nvmf_logs_req
+	50,  // 91: Gateway.get_gateway_info:input_type -> get_gateway_info_req
+	51,  // 92: Gateway.get_gateway_log_level:input_type -> get_gateway_log_level_req
+	52,  // 93: Gateway.set_gateway_log_level:input_type -> set_gateway_log_level_req
+	53,  // 94: Gateway.show_gateway_listeners_info:input_type -> show_gateway_listeners_info_req
+	54,  // 95: Gateway.get_gateway_stats:input_type -> get_gateway_stats_req
+	55,  // 96: Gateway.get_thread_stats:input_type -> get_thread_stats_req
+	56,  // 97: Gateway.set_gateway_io_stats_mode:input_type -> set_gateway_io_stats_mode_req
+	62,  // 98: Gateway.namespace_add:output_type -> nsid_status
+	61,  // 99: Gateway.create_subsystem:output_type -> subsys_status
+	60,  // 100: Gateway.delete_subsystem:output_type -> req_status
+	60,  // 101: Gateway.change_subsystem_key:output_type -> req_status
+	60,  // 102: Gateway.add_subsystem_network:output_type -> req_status
+	60,  // 103: Gateway.del_subsystem_network:output_type -> req_status
+	27,  // 104: Gateway.gw_refresh_network:output_type -> gw_refresh_network_status
+	60,  // 105: Gateway.add_kmip_server_endpoints:output_type -> req_status
+	60,  // 106: Gateway.del_kmip_server_endpoints:output_type -> req_status
+	33,  // 107: Gateway.list_kmip_server_endpoints:output_type -> kmip_server_endpoints_info
+	92,  // 108: Gateway.list_namespaces:output_type -> namespaces_info
+	60,  // 109: Gateway.namespace_resize:output_type -> req_status
+	96,  // 110: Gateway.namespace_get_io_stats:output_type -> namespace_io_stats_info
+	94,  // 111: Gateway.list_namespaces_io_stats:output_type -> list_namespaces_io_stats_info
+	60,  // 112: Gateway.namespace_set_qos_limits:output_type -> req_status
+	60,  // 113: Gateway.namespace_change_load_balancing_group:output_type -> req_status
+	60,  // 114: Gateway.namespace_change_visibility:output_type -> req_status
+	60,  // 115: Gateway.namespace_change_location:output_type -> req_status
+	60,  // 116: Gateway.namespace_set_rbd_trash_image:output_type -> req_status
+	60,  // 117: Gateway.namespace_set_auto_resize:output_type -> req_status
+	60,  // 118: Gateway.namespace_delete:output_type -> req_status
+	60,  // 119: Gateway.namespace_add_host:output_type -> req_status
+	60,  // 120: Gateway.namespace_delete_host:output_type -> req_status
+	60,  // 121: Gateway.namespace_unpin:output_type -> req_status
+	60,  // 122: Gateway.add_host:output_type -> req_status
+	60,  // 123: Gateway.remove_host:output_type -> req_status
+	60,  // 124: Gateway.set_keep_host_connected:output_type -> req_status
+	60,  // 125: Gateway.change_host_key:output_type -> req_status
+	88,  // 126: Gateway.list_hosts:output_type -> hosts_info
+	90,  // 127: Gateway.list_connections:output_type -> connections_info
+	87,  // 128: Gateway.get_connection_io_statistics:output_type -> connection_io_statistics
+	60,  // 129: Gateway.create_listener:output_type -> req_status
+	60,  // 130: Gateway.delete_listener:output_type -> req_status
+	78,  // 131: Gateway.list_listeners:output_type -> listeners_info
+	67,  // 132: Gateway.list_subsystems:output_type -> subsystems_info_cli
+	63,  // 133: Gateway.get_subsystems:output_type -> subsystems_info
+	60,  // 134: Gateway.set_ana_state:output_type -> req_status
+	98,  // 135: Gateway.get_spdk_nvmf_log_flags_and_level:output_type -> spdk_nvmf_log_flags_and_level_info
+	60,  // 136: Gateway.disable_spdk_nvmf_logs:output_type -> req_status
+	60,  // 137: Gateway.set_spdk_nvmf_logs:output_type -> req_status
+	69,  // 138: Gateway.get_gateway_info:output_type -> gateway_info
+	99,  // 139: Gateway.get_gateway_log_level:output_type -> gateway_log_level_info
+	60,  // 140: Gateway.set_gateway_log_level:output_type -> req_status
+	80,  // 141: Gateway.show_gateway_listeners_info:output_type -> gateway_listeners_info
+	74,  // 142: Gateway.get_gateway_stats:output_type -> gateway_stats_info
+	75,  // 143: Gateway.get_thread_stats:output_type -> thread_stats_info
+	60,  // 144: Gateway.set_gateway_io_stats_mode:output_type -> req_status
+	98,  // [98:145] is the sub-list for method output_type
+	51,  // [51:98] is the sub-list for method input_type
+	51,  // [51:51] is the sub-list for extension type_name
+	51,  // [51:51] is the sub-list for extension extendee
+	0,   // [0:51] is the sub-list for field type_name
 }
 
 func init() { file_gateway_proto_init() }
@@ -8278,17 +8434,18 @@ func file_gateway_proto_init() {
 	file_gateway_proto_msgTypes[62].OneofWrappers = []any{}
 	file_gateway_proto_msgTypes[70].OneofWrappers = []any{}
 	file_gateway_proto_msgTypes[74].OneofWrappers = []any{}
-	file_gateway_proto_msgTypes[78].OneofWrappers = []any{}
+	file_gateway_proto_msgTypes[79].OneofWrappers = []any{}
 	file_gateway_proto_msgTypes[80].OneofWrappers = []any{}
 	file_gateway_proto_msgTypes[82].OneofWrappers = []any{}
-	file_gateway_proto_msgTypes[87].OneofWrappers = []any{}
+	file_gateway_proto_msgTypes[84].OneofWrappers = []any{}
+	file_gateway_proto_msgTypes[89].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_proto_rawDesc), len(file_gateway_proto_rawDesc)),
 			NumEnums:      7,
-			NumMessages:   92,
+			NumMessages:   94,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -6913,13 +6913,18 @@ class GatewayService(pb2_grpc.GatewayServicer):
         peer_msg = self.get_peer_message(context)
         cmd = "reset" if request.reset else "get"
         cmd2 = "resetting" if request.reset else "getting"
-        self.logger.info(f"Received request to {cmd} IO statistics for host {request.host_nqn} "
-                         f"on {request.subsystem_nqn}, "
+        if request.subsystem_nqn:
+            subsysmsg = f"subsystem {request.subsystem_nqn}"
+        else:
+            subsysmsg = "all subsystems"
+        hostmsg = f"host {request.host_nqn}" if request.host_nqn else "all hosts"
+        self.logger.info(f"Received request to {cmd} IO statistics for {hostmsg} "
+                         f"on {subsysmsg}, verbose: {request.verbose}, "
                          f"context: {context}{peer_msg}")
-        failure_prefix = f"Failure {cmd2} IO statistics for host {request.host_nqn} " \
-                         f"on subsystem {request.subsystem_nqn}"
+        failure_prefix = f"Failure {cmd2} IO statistics for {hostmsg} " \
+                         f"on {subsysmsg}"
 
-        if request.subsystem_nqn not in self.subsys_serial:
+        if request.subsystem_nqn and (request.subsystem_nqn not in self.subsys_serial):
             errmsg = f"{failure_prefix}: No such subsystem"
             self.logger.error(errmsg)
             return pb2.connection_io_statistics(status=errno.ENOENT, error_message=errmsg)
@@ -6930,40 +6935,55 @@ class GatewayService(pb2_grpc.GatewayServicer):
             return pb2.connection_io_statistics(status=errno.ENOTSUP, error_message=errmsg)
 
         if request.host_nqn == "*":
-            errmsg = f"{failure_prefix}: Must specify a specific host NQN, \"*\" is invalid"
+            errmsg = f"{failure_prefix}: Must specify a specific host NQN or none, " \
+                     f"\"*\" is invalid"
             self.logger.error(errmsg)
             return pb2.connection_io_statistics(status=errno.EINVAL, error_message=errmsg)
 
-        if not GatewayState.is_key_element_valid(request.host_nqn):
+        if request.host_nqn and (not GatewayState.is_key_element_valid(request.host_nqn)):
             errmsg = f"{failure_prefix}: Invalid host NQN \"{request.host_nqn}\", " \
                      f"contains invalid characters"
             self.logger.error(errmsg)
             return pb2.connection_io_statistics(status=errno.EINVAL, error_message=errmsg)
 
-        if not GatewayState.is_key_element_valid(request.subsystem_nqn):
+        if request.subsystem_nqn and (not GatewayState.is_key_element_valid(request.subsystem_nqn)):
             errmsg = f"{failure_prefix}: Invalid subsystem NQN \"{request.subsystem_nqn}\"," \
                      f" contains invalid characters"
             self.logger.error(errmsg)
             return pb2.connection_io_statistics(status=errno.EINVAL, error_message=errmsg)
 
-        if not self.host_info.is_any_host_allowed(request.subsystem_nqn):
-            host_exists = self.host_info.does_host_exist(request.subsystem_nqn,
-                                                         request.host_nqn)
-            if not host_exists:
-                errmsg = f"{failure_prefix}: Host is not allowed to access subsystem"
+        if request.subsystem_nqn and request.host_nqn:
+            if not self.host_info.is_any_host_allowed(request.subsystem_nqn):
+                host_exists = self.host_info.does_host_exist(request.subsystem_nqn,
+                                                             request.host_nqn)
+                if not host_exists:
+                    errmsg = f"{failure_prefix}: Host is not allowed to access subsystem"
+                    self.logger.error(errmsg)
+                    return pb2.connection_io_statistics(status=errno.EPERM, error_message=errmsg)
+
+            host_is_connected = self.is_host_connected(request.subsystem_nqn, request.host_nqn)
+            if not host_is_connected:
+                errmsg = f"{failure_prefix}: Host is not connected"
                 self.logger.error(errmsg)
-                return pb2.connection_io_statistics(status=errno.ENODEV, error_message=errmsg)
+                return pb2.connection_io_statistics(status=errno.ENOTCONN, error_message=errmsg)
 
-        host_is_connected = self.is_host_connected(request.subsystem_nqn, request.host_nqn)
-        if not host_is_connected:
-            errmsg = f"{failure_prefix}: Host is not connected"
-            self.logger.error(errmsg)
-            return pb2.connection_io_statistics(status=errno.ENODEV, error_message=errmsg)
+        if request.reset:
+            if (not request.subsystem_nqn) and (not request.host_nqn):
+                self.logger.warning("Resetting IO statistics for all hosts on all subsystems")
+            elif not request.subsystem_nqn:
+                self.logger.warning(f"Resetting IO statistics for host {request.host_nqn} "
+                                    f"on all subsystems")
+            elif not request.host_nqn:
+                self.logger.warning(f"Resetting IO statistics for all hosts on subsystem "
+                                    f"{request.subsystem_nqn}")
 
+        subnqn_to_use = request.subsystem_nqn if request.subsystem_nqn else None
+        hostnqn_to_use = request.host_nqn if request.host_nqn else None
         try:
-            ret = self.spdk_rpc_client.nvmf_get_ctrl_io_stats(nqn=request.subsystem_nqn,
-                                                              host_nqn=request.host_nqn,
-                                                              reset=request.reset)
+            ret = self.spdk_rpc_client.nvmf_get_ctrl_io_stats(nqn=subnqn_to_use,
+                                                              host_nqn=hostnqn_to_use,
+                                                              reset=request.reset,
+                                                              verbose_stats=request.verbose)
             self.logger.debug(f"nvmf_get_ctrl_io_stats: {ret}")
         except Exception as ex:
             self.logger.exception(failure_prefix)
@@ -6989,30 +7009,72 @@ class GatewayService(pb2_grpc.GatewayServicer):
         if request.reset:
             if ret.get("reset"):
                 return pb2.connection_io_statistics(status=0, error_message="")
-            self.logger.error(failure_prefix)
-            return pb2.connection_io_statistics(status=errno.EINVAL, error_message=failure_prefix)
-
-        bucket_list = []
-        try:
-            total_num_ios = _get_int_from_dict(ret, "total_num_ios")
-            buckets = ret.get("buckets")
-            if not buckets:
-                buckets = []
-            for bucket in buckets:
-                one_bucket = _get_bucket(bucket)
-                if one_bucket:
-                    bucket_list.append(one_bucket)
-            return pb2.connection_io_statistics(status=0, error_message="",
-                                                subsystem_nqn=request.subsystem_nqn,
-                                                host_nqn=request.host_nqn,
-                                                total_num_ios=total_num_ios,
-                                                buckets=bucket_list)
-        except Exception as ex:
-            self.logger.exception(f"Error parsing {ret}")
-            errmsg = f"{failure_prefix}:\n{ex}"
+            errmsg = f"{failure_prefix}: No reset indication in returned output"
+            self.logger.error(errmsg)
             return pb2.connection_io_statistics(status=errno.EINVAL, error_message=errmsg)
 
-        return pb2.connection_io_statistics(status=errno.ENOTSUP, error_message="TBD")
+        out_stats = []
+        deprecated_total_num_ios = 0
+        deprecated_buckets = []
+        deprecated_set = False
+        category = ret.get("category", "")
+        stats = ret.get("statistics")
+        if not stats:
+            return pb2.connection_io_statistics(status=0, error_message="",
+                                                deprecated_subsystem_nqn=request.subsystem_nqn,
+                                                deprecated_host_nqn=request.host_nqn,
+                                                category=category,
+                                                statistics_entries=[])
+        for st in stats:
+            stats_subsys = st.get("nqn", "")
+            stats_hostnqn = st.get("host_nqn", "")
+            if request.subsystem_nqn and stats_subsys and request.subsystem_nqn != stats_subsys:
+                errmsg = f"{failure_prefix}: Requested subsystem \"{request.subsystem_nqn}\" " \
+                         f"differs from returned one \"{stats_subsys}\""
+                self.logger.error(errmsg)
+                return pb2.connection_io_statistics(status=errno.EBADMSG, error_message=errmsg)
+
+            if request.host_nqn and stats_hostnqn and request.host_nqn != stats_hostnqn:
+                errmsg = f"{failure_prefix}: Requested host NQN \"{request.host_nqn}\" " \
+                         f"differs from returned one \"{stats_hostnqn}\""
+                self.logger.error(errmsg)
+                return pb2.connection_io_statistics(status=errno.EBADMSG, error_message=errmsg)
+
+            ctrlr_stats = st.get("stats")
+            if not ctrlr_stats:
+                errmsg = f"{failure_prefix}: Missing controller statistics in entry"
+                self.logger.error(errmsg)
+                return pb2.connection_io_statistics(status=errno.EBADMSG, error_message=errmsg)
+
+            try:
+                total_num_ios = _get_int_from_dict(ctrlr_stats, "total_num_ios")
+                buckets = ctrlr_stats.get("buckets", [])
+                bucket_list = []
+                for bucket in buckets:
+                    one_bucket = _get_bucket(bucket)
+                    if one_bucket:
+                        bucket_list.append(one_bucket)
+                out_ctrl_stats = pb2.controller_statistics(total_num_ios=total_num_ios,
+                                                           buckets=bucket_list)
+                if not deprecated_set:
+                    deprecated_total_num_ios = total_num_ios
+                    deprecated_buckets = bucket_list
+                    deprecated_set = True
+            except Exception as ex:
+                self.logger.exception(f"Error parsing {ret}")
+                errmsg = f"{failure_prefix}:\n{ex}"
+                return pb2.connection_io_statistics(status=errno.EINVAL, error_message=errmsg)
+            out_stats.append(pb2.statistics_entry(subsystem_nqn=stats_subsys,
+                                                  host_nqn=stats_hostnqn,
+                                                  controller_stats=out_ctrl_stats))
+
+        return pb2.connection_io_statistics(status=0, error_message="",
+                                            deprecated_subsystem_nqn=request.subsystem_nqn,
+                                            deprecated_host_nqn=request.host_nqn,
+                                            deprecated_total_num_ios=deprecated_total_num_ios,
+                                            deprecated_buckets=deprecated_buckets,
+                                            statistics_entries=out_stats,
+                                            category=category)
 
     def get_connection_io_statistics(self, request, context=None):
         """Get connection's IO statistics."""

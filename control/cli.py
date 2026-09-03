@@ -2631,55 +2631,82 @@ class GatewayClient:
         out_func, err_func, wrn_func = self.get_output_functions(args)
 
         if args.host_nqn == "*":
-            self.cli.parser.error("Must specify a specific host NQN")
+            self.cli.parser.error("Must specify a specific host NQN or none")
 
+        if not args.subsystem:
+            args.subsystem = ""
+        if not args.host_nqn:
+            args.host_nqn = ""
         req = pb2.get_connection_io_statistics_req(subsystem_nqn=args.subsystem,
-                                                   host_nqn=args.host_nqn, reset=False)
+                                                   host_nqn=args.host_nqn, reset=False,
+                                                   verbose=args.verbose_stats)
         try:
             ret = self.stub.get_connection_io_statistics(req)
         except Exception as ex:
+            stat_entry = pb2.statistics_entry(subsystem_nqn=args.subsystem, host_nqn=args.host_nqn)
             ret = pb2.connection_io_statistics(status=errno.EINVAL,
                                                error_message=f"Failure getting host IO "
                                                              f"statistics:\n{ex}",
-                                               subsystem_nqn=args.subsystem,
-                                               host_nqn=args.host_nqn)
+                                               statistics_entries=[stat_entry])
 
         if args.format == "text" or args.format == "plain":
             if ret.status == 0:
-                if len(ret.buckets) == 0:
-                    out_func(f"No IO statistics available for host {args.host_nqn} "
-                             f"on {args.subsystem}")
-                    if ret.total_num_ios > 0:
-                        out_func(f"Total IOs count: {ret.total_num_ios}")
+                catmsg = f" using category \"{ret.category}\"" if ret.category else ""
+                hostmsg = f"host {args.host_nqn}" if args.host_nqn else "all hosts"
+                subsysmsg = f"subsystem {args.subsystem}" if args.subsystem else "all subsystems"
+                stats_entries = list(ret.statistics_entries)
+                if not stats_entries and ret.HasField("deprecated_total_num_ios"):
+                    stats_entries.append(pb2.statistics_entry(
+                        subsystem_nqn=ret.deprecated_subsystem_nqn,
+                        host_nqn=ret.deprecated_host_nqn,
+                        controller_stats=pb2.controller_statistics(
+                            total_num_ios=ret.deprecated_total_num_ios,
+                            buckets=ret.deprecated_buckets)))
+                if not stats_entries:
+                    out_func(f"No IO statistics available for {hostmsg} "
+                             f"on {subsysmsg}")
                     return ret.status
+                for stat_entry in stats_entries:
+                    hostmsg = f"host {stat_entry.host_nqn}" if stat_entry.host_nqn else "all hosts"
+                    if stat_entry.subsystem_nqn:
+                        subsysmsg = f"subsystem {stat_entry.subsystem_nqn}"
+                    else:
+                        subsysmsg = "all subsystems"
+                    if len(stat_entry.controller_stats.buckets) == 0:
+                        out_func(f"No IO statistics available for {hostmsg} "
+                                 f"on {subsysmsg}")
+                        if stat_entry.controller_stats.total_num_ios > 0:
+                            out_func(f"Total IOs count: "
+                                     f"{stat_entry.controller_stats.total_num_ios}")
+                        continue
 
-                table_format = "fancy_grid" if args.format == "text" else "plain"
-                out_func(f"IO statistics for host {args.host_nqn} on {args.subsystem}:\n")
-                stats_list = []
-                for bucket in ret.buckets:
-                    rd = bucket.read
-                    wr = bucket.write
-                    lat_groups = [("Read", rd), ("Write", wr)]
-                    for lg in lat_groups:
-                        if not _is_latency_group_empty(lg[1]):
-                            stats_list.append([f"{bucket.size}KB",
-                                               lg[0],
-                                               lg[1].io_count,
-                                               _get_latency_stats_line(lg[1].bdev),
-                                               _get_latency_stats_line(lg[1].net),
-                                               _get_latency_stats_line(lg[1].qos),
-                                               _get_latency_stats_line(lg[1].total)])
-                tbl = tabulate(stats_list,
-                               headers=["Bucket\nSize",
-                                        "Bucket\nType",
-                                        "IOs Count",
-                                        "BDEV µSec\n(Min,Max,Mean)",
-                                        "Net µSec\n(Min,Max,Mean)",
-                                        "QOS µSec\n(Min,Max,Mean)",
-                                        "Total µSec\n(Min,Max,Mean)"],
-                               tablefmt=table_format)
-                out_func(f"{tbl}\n\n"
-                         f"Total IOs count: {ret.total_num_ios}")
+                    table_format = "fancy_grid" if args.format == "text" else "plain"
+                    out_func(f"IO statistics for {hostmsg} on {subsysmsg}{catmsg}:\n")
+                    stats_list = []
+                    for bucket in stat_entry.controller_stats.buckets:
+                        rd = bucket.read
+                        wr = bucket.write
+                        lat_groups = [("Read", rd), ("Write", wr)]
+                        for lg in lat_groups:
+                            if not _is_latency_group_empty(lg[1]):
+                                stats_list.append([f"{bucket.size}KB",
+                                                   lg[0],
+                                                   lg[1].io_count,
+                                                   _get_latency_stats_line(lg[1].bdev),
+                                                   _get_latency_stats_line(lg[1].net),
+                                                   _get_latency_stats_line(lg[1].qos),
+                                                   _get_latency_stats_line(lg[1].total)])
+                    tbl = tabulate(stats_list,
+                                   headers=["Bucket\nSize",
+                                            "Bucket\nType",
+                                            "IOs Count",
+                                            "BDEV µSec\n(Min,Max,Mean)",
+                                            "Net µSec\n(Min,Max,Mean)",
+                                            "QOS µSec\n(Min,Max,Mean)",
+                                            "Total µSec\n(Min,Max,Mean)"],
+                                   tablefmt=table_format)
+                    out_func(f"{tbl}\n\n"
+                             f"Total IOs count: {stat_entry.controller_stats.total_num_ios}")
                 if ret.error_message:
                     wrn_func(ret.error_message)
             else:
@@ -2706,23 +2733,29 @@ class GatewayClient:
         out_func, err_func, wrn_func = self.get_output_functions(args)
 
         if args.host_nqn == "*":
-            self.cli.parser.error("Must specify a specific host NQN")
+            self.cli.parser.error("Must specify a specific host NQN or none")
 
+        if not args.subsystem:
+            args.subsystem = ""
+        if not args.host_nqn:
+            args.host_nqn = ""
         req = pb2.get_connection_io_statistics_req(subsystem_nqn=args.subsystem,
                                                    host_nqn=args.host_nqn, reset=True)
         try:
             ret = self.stub.get_connection_io_statistics(req)
         except Exception as ex:
+            stat_entry = pb2.statistics_entry(subsystem_nqn=args.subsystem, host_nqn=args.host_nqn)
             ret = pb2.connection_io_statistics(status=errno.EINVAL,
                                                error_message=f"Failure resetting host's IO "
                                                              f"statistics:\n{ex}",
-                                               subsystem_nqn=args.subsystem,
-                                               host_nqn=args.host_nqn)
+                                               statistics_entries=[stat_entry])
 
         if args.format == "text" or args.format == "plain":
             if ret.status == 0:
-                out_func(f"Resetting host's {args.host_nqn} in {args.subsystem} "
-                         f"IO statistics: Successful")
+                hostmsg = f"host {args.host_nqn}" if args.host_nqn else "all hosts"
+                subsysmsg = f"subsystem {args.subsystem}" if args.subsystem else "all subsystems"
+                out_func(f"Resetting IO statistics for {hostmsg} on {subsysmsg}: "
+                         f"Successful")
                 if ret.error_message:
                     wrn_func(ret.error_message)
             else:
@@ -2752,22 +2785,24 @@ class GatewayClient:
     get_io_statistics_args = [
         argument("--subsystem",
                  "-n",
-                 help="Subsystem NQN",
-                 required=True),
+                 help="Subsystem NQN"),
         argument("--host-nqn",
                  "-t",
-                 help="Host NQN",
-                 required=True),
+                 help="Host NQN"),
+        argument("--verbose",
+                 "-v",
+                 help="Enable verbose per-bucket statistics",
+                 dest="verbose_stats",
+                 action='store_true',
+                 required=False),
     ]
     reset_io_statistics_args = [
         argument("--subsystem",
                  "-n",
-                 help="Subsystem NQN",
-                 required=True),
+                 help="Subsystem NQN"),
         argument("--host-nqn",
                  "-t",
-                 help="Host NQN",
-                 required=True),
+                 help="Host NQN"),
     ]
     connection_actions = []
     connection_actions.append({"name": "list",
