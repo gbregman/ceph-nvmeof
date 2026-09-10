@@ -6280,9 +6280,6 @@ class GatewayService(pb2_grpc.GatewayServicer):
                     self.remove_all_host_keys_from_keyring(request.subsystem_nqn, request.host_nqn)
                     return pb2.req_status(status=errno.EINVAL, error_message=errmsg)
 
-        self.host_info.reset_connected_host_indication(request.subsystem_nqn,
-                                                       request.host_nqn)
-
         return pb2.req_status(status=0, error_message=host_add_warning)
 
     def add_host(self, request, context=None):
@@ -6461,8 +6458,10 @@ class GatewayService(pb2_grpc.GatewayServicer):
                         json_req = json_format.MessageToJson(
                             set_connected_req, preserving_proto_field_name=True,
                             including_default_value_fields=True)
+                        salt = str(time.time())
                         self.gateway_state.add_connected_host(request.subsystem_nqn,
                                                               request.host_nqn,
+                                                              salt,
                                                               json_req)
                     else:
                         self.gateway_state.remove_connected_host(request.subsystem_nqn,
