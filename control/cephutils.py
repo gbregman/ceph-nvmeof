@@ -311,6 +311,22 @@ class CephUtils:
 
         return CephUtils.CephPoolType.INVALID
 
+    def pool_applications(self, pool) -> list:
+        if not pool:
+            return []
+        apps = []
+        try:
+            with rados.Rados(conffile=self.ceph_conf, rados_id=self.rados_id) as cluster:
+                if not cluster.pool_exists(pool):
+                    return []
+                with cluster.open_ioctx(pool) as ioctx:
+                    apps = ioctx.application_list()
+        except Exception:
+            self.logger.exception(f"Can't get pool {pool} applications")
+            return []
+
+        return apps
+
     def _flag_is_set(self, flag, pool) -> bool:
         cmd = '{' + f'"prefix": "osd pool get", "pool": "{pool}", ' \
                     f'"var": "{flag}", "format": "json"' + '}'

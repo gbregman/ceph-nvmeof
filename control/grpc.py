@@ -1053,6 +1053,8 @@ class GatewayService(pb2_grpc.GatewayServicer):
 
         self.verify_image_encryption_settings = self.config.getboolean_with_default(
             "gateway", "verify_image_encryption_settings", True)
+        self.verify_pool_applications = self.config.getboolean_with_default(
+            "gateway", "verify_pool_applications", True)
         self.kmip_cert_dir = self.config.get_with_default("kmip",
                                                           "cert_dir",
                                                           "./certs/kmip/{server_name}")
@@ -1567,6 +1569,7 @@ class GatewayService(pb2_grpc.GatewayServicer):
 
         assert self.rpc_lock.locked(), "RPC is unlocked when calling create_rbd_bdev()"
 
+        wrn_msg = ""
         if context and create_image:
             cr_img_msg = "will create image if doesn't exist"
         else:
@@ -1657,6 +1660,7 @@ class GatewayService(pb2_grpc.GatewayServicer):
             if rbd_image_size % (1024 * 1024):
                 return BdevStatus(status=errno.EINVAL,
                                   error_message="Image size must be aligned to MiBs")
+
             rc = self.ceph_utils.pool_exists(rbd_pool_name)
             if not rc:
                 return BdevStatus(status=errno.ENODEV,
@@ -1714,6 +1718,22 @@ class GatewayService(pb2_grpc.GatewayServicer):
                                       error_message=f"RBD data pool "
                                                     f"{rbd_data_pool_name} is not a replicated "
                                                     f"or erasure coded pool")
+
+            pool_apps = self.ceph_utils.pool_applications(rbd_pool_name)
+            if pool_apps:
+                for app in pool_apps:
+                    if app.lower().strip() == "nvmeof":
+                        continue
+                    if self.verify_pool_applications:
+                        errmsg = f"RBD pool {rbd_pool_name} has the \"{app}\" application " \
+                                 f"enabled, can't create image {image_path}"
+                        self.logger.error(errmsg)
+                        return BdevStatus(status=errno.EINVAL, error_message=errmsg)
+                    else:
+                        wrn_msg = f"RBD pool {rbd_pool_name} has the \"{app}\" " \
+                                  f"application enabled, will create image {image_path} " \
+                                  f"anyway as pool application verification is disabled"
+                        self.logger.warning(wrn_msg)
 
             try:
                 enc_format = None
@@ -1864,7 +1884,7 @@ class GatewayService(pb2_grpc.GatewayServicer):
         assert name == bdev_name, f"Created bdev name {bdev_name} differs " \
                                   f"from requested name {name}"
 
-        return BdevStatus(status=0, error_message="", bdev_name=name,
+        return BdevStatus(status=0, error_message=wrn_msg, bdev_name=name,
                           rbd_pool=rbd_pool_name,
                           rbd_image_name=rbd_image_name,
                           rados_namespace_name=rados_namespace_name, trash_image=trash_image)
@@ -3775,6 +3795,7 @@ class GatewayService(pb2_grpc.GatewayServicer):
 
             # If we got here we asserted that ret_bdev.bdev_name == bdev_name
 
+            bdev_warning = ret_bdev.error_message
             pool_to_use = ret_bdev.rbd_pool
             data_pool_to_use = request.rbd_data_pool_name
             image_name_to_use = ret_bdev.rbd_image_name
@@ -3853,6 +3874,10 @@ class GatewayService(pb2_grpc.GatewayServicer):
         errmsg = ""
         if create_degraded:
             errmsg = "Couldn't fetch passphrase for decrypting, a degraded namespace was created"
+            if bdev_warning:
+                errmsg += "\n"
+        if bdev_warning:
+            errmsg += bdev_warning
 
         return pb2.nsid_status(status=0, error_message=errmsg, nsid=ret_ns.nsid)
 
