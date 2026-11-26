@@ -4400,6 +4400,227 @@ class GatewayClient:
             self.cli.parser.error(f"missing action for namespace command "
                                   f"(choose from {GatewayClient.ns_choices})")
 
+    def kv_register(self, args):
+        """Register a KV Rados cluster."""
+
+        out_func, err_func, wrn_func = self.get_output_functions(args)
+
+        try:
+            ret = self.stub.kvdev_rados_register_cluster(pb2.kvdev_rados_register_cluster_req(
+                name=args.name, user_id=args.user_id, config_file=args.config_file,
+                key_file=args.key_file))
+        except Exception as ex:
+            ret = pb2.req_status(status=errno.EINVAL,
+                                 error_message=f"Failure registering KV Rados "
+                                               f"cluster {args.name}:\n{ex}")
+
+        if args.format == "text" or args.format == "plain":
+            if ret.status == 0:
+                out_func(f"Registering KV Rados cluster {args.name}: Successful")
+                if ret.error_message:
+                    wrn_func(ret.error_message)
+            else:
+                err_func(ret.error_message)
+        elif args.format == "json" or args.format == "yaml":
+            ret_str = json_format.MessageToJson(ret, indent=4,
+                                                including_default_value_fields=True,
+                                                preserving_proto_field_name=True)
+            if args.format == "json":
+                out_func(ret_str)
+            elif args.format == "yaml":
+                obj = json.loads(ret_str)
+                out_func(yaml.dump(obj))
+        elif args.format == "python":
+            return ret
+        else:
+            assert False
+
+        return ret.status
+
+    def kv_create(self, args):
+        """Create a Rados KV."""
+
+        out_func, err_func, wrn_func = self.get_output_functions(args)
+
+        try:
+            ret = self.stub.kvdev_rados_create(pb2.kvdev_rados_create_req(
+                name=args.name, cluster_name=args.cluster_name, pool_name=args.pool_name,
+                namespace=args.namespace, uuid=args.uuid, max_value_len=args.max_value_len))
+        except Exception as ex:
+            ret = pb2.req_status(status=errno.EINVAL,
+                                 error_message=f"Failure creating Rados KV "
+                                               f"{args.name}:\n{ex}")
+
+        if args.format == "text" or args.format == "plain":
+            if ret.status == 0:
+                out_func(f"Creating Rados KV {args.name}: Successful")
+                if ret.error_message:
+                    wrn_func(ret.error_message)
+            else:
+                err_func(ret.error_message)
+        elif args.format == "json" or args.format == "yaml":
+            ret_str = json_format.MessageToJson(ret, indent=4,
+                                                including_default_value_fields=True,
+                                                preserving_proto_field_name=True)
+            if args.format == "json":
+                out_func(ret_str)
+            elif args.format == "yaml":
+                obj = json.loads(ret_str)
+                out_func(yaml.dump(obj))
+        elif args.format == "python":
+            return ret
+        else:
+            assert False
+
+        return ret.status
+
+    def kv_add_ns(self, args):
+        """Add a KV namespace."""
+
+        out_func, err_func, wrn_func = self.get_output_functions(args)
+
+        if args.load_balancing_group < 0:
+            self.cli.parser.error("load-balancing-group value must be positive")
+        if args.nsid is not None and args.nsid <= 0:
+            self.cli.parser.error("nsid value must be positive")
+        if args.uuid is not None and not GatewayUtils.is_valid_uuid(args.uuid):
+            self.cli.parser.error(f"--uuid value '{args.uuid}' is not a valid UUID "
+                                  f"(expected format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)")
+
+        try:
+            ret = self.stub.kvdev_add_namespace(pb2.kvdev_add_namespace_req(
+                subsystem_nqn=args.subsystem, kv_name=args.kv_name, nsid=args.nsid,
+                uuid=args.uuid, anagrpid=args.load_balancing_group))
+        except Exception as ex:
+            nsid_msg = ""
+            if args.nsid:
+                nsid_msg = f"using NSID {args.nsid} "
+            errmsg = f"Failure adding KV namespace {nsid_msg}to {args.subsystem}"
+            ret = pb2.req_status(status=errno.EINVAL, error_message=f"{errmsg}:\n{ex}")
+
+        if args.format == "text" or args.format == "plain":
+            if ret.status == 0:
+                out_func(f"Adding KV namespace {ret.nsid} to {args.subsystem}: Successful")
+                if ret.error_message:
+                    wrn_func(ret.error_message)
+            else:
+                err_func(ret.error_message)
+        elif args.format == "json" or args.format == "yaml":
+            ret_str = json_format.MessageToJson(ret, indent=4,
+                                                including_default_value_fields=True,
+                                                preserving_proto_field_name=True)
+            if args.format == "json":
+                out_func(ret_str)
+            elif args.format == "yaml":
+                obj = json.loads(ret_str)
+                out_func(yaml.dump(obj))
+        elif args.format == "python":
+            return ret
+        else:
+            assert False
+
+        return ret.status
+
+    def kv_set_ns_allowlist(self, args):
+        """Set namespace KV exec allowlist."""
+
+        out_func, err_func, wrn_func = self.get_output_functions(args)
+
+        if args.nsid <= 0:
+            self.cli.parser.error("nsid value must be positive")
+
+        try:
+            ret = self.stub.namespace_set_kv_exec_allowlist(
+                pb2.namespace_set_kv_exec_allowlist_req(subsystem_nqn=args.subsystem,
+                                                        nsid=args.nsid,
+                                                        allowlist=args.allowlist))
+        except Exception as ex:
+            ret = pb2.req_status(status=errno.EINVAL,
+                                 error_message=f"Failure setting namespace KV "
+                                               f"exec allowlist\n{ex}")
+
+        if args.format == "text" or args.format == "plain":
+            if ret.status == 0:
+                out_func("Setting namespace KV exec allowlist: Successful")
+                if ret.error_message:
+                    wrn_func(ret.error_message)
+            else:
+                err_func(ret.error_message)
+        elif args.format == "json" or args.format == "yaml":
+            ret_str = json_format.MessageToJson(ret, indent=4,
+                                                including_default_value_fields=True,
+                                                preserving_proto_field_name=True)
+            if args.format == "json":
+                out_func(ret_str)
+            elif args.format == "yaml":
+                obj = json.loads(ret_str)
+                out_func(yaml.dump(obj))
+        elif args.format == "python":
+            return ret
+        else:
+            assert False
+
+        return ret.status
+
+    kv_register_args_list = [
+        argument("name", help="KV Rados cluster name"),
+        argument("--user-id", "-u", help="User ID"),
+        argument("--config-file", "-c", help="Config file"),
+        argument("--key-file", "-k", help="Key file"),
+    ]
+    kv_create_args_list = [
+        argument("name", help="KV Rados name"),
+        argument("cluster_name", help="KV Rados cluster name"),
+        argument("pool_name", help="Rados pool name"),
+        argument("--namespace", "-n", help="Rados namespace (maps to the KV namespace)"),
+        argument("--uuid", "-u", help="UUID of the KV"),
+        argument("--max-value-len", "-v", type=int,
+                 help="Maximum value length in bytes (0 for the 64MB default)"),
+    ]
+    kv_add_ns_args_list = [
+        argument("subsystem", help="Subsystem NQN"),
+        argument("kv_name", help="KV Rados name"),
+        argument("--nsid", help="Namespace ID", type=int),
+        argument("--uuid", "-u", help="Namespace UUID"),
+        argument("--load-balancing-group", "-l",
+                 help="Load balancing group", type=int, default=0),
+    ]
+    kv_ns_set_exec_allow_list_args_list = [
+        argument("subsystem", help="Subsystem NQN"),
+        argument("nsid", help="Namespace ID", type=int),
+        argument("--allowlist", "-a", nargs="+",
+                 help="Whitespace-separated KV Exec allowlist entries"),
+    ]
+    kv_actions = []
+    kv_actions.append({"name": "register",
+                       "args": kv_register_args_list,
+                       "help": "Register a KV Rados cluster"})
+    kv_actions.append({"name": "create",
+                       "args": kv_create_args_list,
+                       "help": "Register a KV Rados cluster"})
+    kv_actions.append({"name": "namespace_add",
+                       "args": kv_add_ns_args_list,
+                       "help": "Add a KV namespace to the subsystem"})
+    kv_actions.append({"name": "namespace_set_kv_exec_allowlist",
+                       "args": kv_ns_set_exec_allow_list_args_list,
+                       "help": "Set the KV Exec allowlist of a namespace"})
+    kv_choices = get_actions(kv_actions)
+
+    @cli.cmd(kv_actions)
+    def kv(self, args):
+        """KV commands"""
+        if args.action == "register":
+            return self.kv_register(args)
+        elif args.action == "create":
+            return self.kv_create(args)
+        elif args.action == "namespace_add":
+            return self.kv_add_ns(args)
+        elif args.action == "namespace_set_kv_exec_allowlist":
+            return self.kv_set_ns_allowlist(args)
+        if not args.action:
+            self.cli.parser.error(f"missing action for KV command "
+                                  f"(choose from {GatewayClient.kv_choices})")
+
     @cli.cmd()
     def get_subsystems(self, args):
         """Get subsystems"""

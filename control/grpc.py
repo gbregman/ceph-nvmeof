@@ -4257,6 +4257,268 @@ class GatewayService(pb2_grpc.GatewayServicer):
         err_prefix = f"Failure adding namespace to {request.subsystem_nqn}: "
         return self.execute_grpc_function(self.namespace_add_safe, request, context, err_prefix)
 
+    def kvdev_rados_register_cluster_safe(self, request, context):
+
+        assert self.rpc_lock.locked(), "RPC is unlocked when calling " \
+                                       "kvdev_rados_register_cluster_safe()"
+        peer_msg = self.get_peer_message(context)
+        if not request.name:
+            errmsg = "Failure registering KV Rados cluster, missing name"
+            self.logger.error(errmsg)
+            return pb2.req_status(status=errno.EINVAL, error_message=errmsg)
+        failure_prefix = f"Failure registering KV Rados cluster {request.name}"
+
+        self.logger.info(f"Received request to register KV Rados cluster "
+                         f"{request.name}, user_id: {request.user_id}, "
+                         f"config file: {request.config_file}, key file: {request.key_file}, "
+                         f"context: {context}{peer_msg}")
+
+        if not request.user_id:
+            request.user_id = self.gateway_name.removeprefix("client.")
+        if not request.config_file:
+            request.config_file = "/etc/ceph/ceph.conf"
+        if not request.key_file:
+            request.key_file = "/etc/ceph/keyring"
+
+        omap_lock = self.omap_lock.get_omap_lock_to_use(context)
+        with omap_lock:
+            try:
+                ret = self.spdk_rpc_client.kvdev_rados_register_cluster(
+                    name=request.name,
+                    user_id=request.user_id,
+                    config_file=request.config_file,
+                    key_file=request.key_file,
+                )
+                self.logger.debug(f"kvdev_rados_register_cluster: {ret}")
+            except Exception as ex:
+                self.logger.exception(failure_prefix)
+                errmsg = f"{failure_prefix}:\n{ex}"
+                resp = self.parse_json_exeption(ex)
+                status = errno.EINVAL
+                if resp:
+                    status = resp["code"]
+                    errmsg = f"{failure_prefix}: {resp['message']}"
+                return pb2.req_status(status=status, error_message=errmsg)
+
+        # Just in case SPDK failed with no exception
+        if not ret:
+            self.logger.error(failure_prefix)
+            return pb2.req_status(status=errno.EINVAL, error_message=failure_prefix)
+
+        return pb2.req_status(status=0, error_message="")
+
+    def kvdev_rados_register_cluster(self, request, context=None):
+        """Adds a namespace to a subsystem."""
+        err_prefix = f"Failure registering KV Rados cluster {request.name}: "
+        return self.execute_grpc_function(self.kvdev_rados_register_cluster_safe,
+                                          request, context, err_prefix)
+
+    def kvdev_rados_create_safe(self, request, context):
+
+        assert self.rpc_lock.locked(), "RPC is unlocked when calling " \
+                                       "kvdev_rados_create_safe()"
+        peer_msg = self.get_peer_message(context)
+        if not request.name:
+            errmsg = "Failure creating Rados KV, missing name"
+            self.logger.error(errmsg)
+            return pb2.req_status(status=errno.EINVAL, error_message=errmsg)
+        if not request.cluster_name:
+            errmsg = f"Failure creating Rados KV {request.name}, missing cluster name"
+            self.logger.error(errmsg)
+            return pb2.req_status(status=errno.EINVAL, error_message=errmsg)
+        if not request.pool_name:
+            errmsg = f"Failure creating Rados KV {request.name}, missing pool name"
+            self.logger.error(errmsg)
+            return pb2.req_status(status=errno.EINVAL, error_message=errmsg)
+        failure_prefix = f"Failure creating Rados KV {request.name}"
+
+        self.logger.info(f"Received request to create Rados KV "
+                         f"{request.name}, cluster: {request.cluster_name}, "
+                         f"pool: {request.pool_name}, namespace: {request.namespace}, "
+                         f"uuid: {request.uuid}, max val len: {request.max_value_len}, "
+                         f"context: {context}{peer_msg}")
+
+        if request.uuid and not GatewayUtils.is_valid_uuid(request.uuid):
+            errmsg = (f"{failure_prefix}: "
+                      f"Invalid UUID '{request.uuid}' "
+                      f"(expected format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)")
+            self.logger.error(errmsg)
+            return pb2.req_status(status=errno.EINVAL, error_message=errmsg)
+
+        kv_create_args = {}
+        kv_create_args["name"] = request.name
+        kv_create_args["cluster_name"] = request.cluster_name
+        kv_create_args["pool_name"] = request.pool_name
+        if request.namespace:
+            kv_create_args["namespace"] = request.namespace
+        if request.uuid:
+            kv_create_args["uuid"] = request.uuid
+        kv_create_args["max_value_len"] = request.max_value_len
+        omap_lock = self.omap_lock.get_omap_lock_to_use(context)
+        with omap_lock:
+            try:
+                ret = self.spdk_rpc_client.kvdev_rados_create(**kv_create_args)
+                self.logger.debug(f"kvdev_rados_create: {ret}")
+            except Exception as ex:
+                self.logger.exception(failure_prefix)
+                errmsg = f"{failure_prefix}:\n{ex}"
+                resp = self.parse_json_exeption(ex)
+                status = errno.EINVAL
+                if resp:
+                    status = resp["code"]
+                    errmsg = f"{failure_prefix}: {resp['message']}"
+                return pb2.req_status(status=status, error_message=errmsg)
+
+        # Just in case SPDK failed with no exception
+        if not ret:
+            self.logger.error(failure_prefix)
+            return pb2.req_status(status=errno.EINVAL, error_message=failure_prefix)
+
+        if ret != request.name:
+            errmsg = f"{failure_prefix}: Retured KV name {ret} differs from " \
+                     f"requested one {request.name}"
+            self.logger.error(errmsg)
+            return pb2.req_status(status=errno.EINVAL, error_message=errmsg)
+
+        return pb2.req_status(status=0, error_message="")
+
+    def kvdev_rados_create(self, request, context=None):
+        """Create Rados KV."""
+        err_prefix = f"Failure registering KV Rados cluster {request.name}: "
+        return self.execute_grpc_function(self.kvdev_rados_create_safe,
+                                          request, context, err_prefix)
+
+    def kvdev_add_namespace_safe(self, request, context):
+
+        assert self.rpc_lock.locked(), "RPC is unlocked when calling " \
+                                       "kvdev_add_namespace_safe()"
+        peer_msg = self.get_peer_message(context)
+        nsid_msg = f"{request.nsid} " if request.nsid else ""
+        if not request.subsystem_nqn:
+            errmsg = "Failure adding KV namespace, missing subsystem NQN"
+            self.logger.error(errmsg)
+            return pb2.nsid_status(status=errno.EINVAL, error_message=errmsg)
+        if not request.kv_name:
+            errmsg = "Failure adding KV namespace to {request.subsystem_nqn}, missing KV name"
+            self.logger.error(errmsg)
+            return pb2.nsid_status(status=errno.EINVAL, error_message=errmsg)
+        failure_prefix = f"Failure adding KV namespace {nsid_msg}to {request.subsystem_nqn}"
+
+        self.logger.info(f"Received request to add KV namespace {nsid_msg}to"
+                         f"{request.subsystem_nqn}, ana group {request.anagrpid}, "
+                         f"KV name: {request.kv_name}, "
+                         f"uuid: {request.uuid}, context: {context}{peer_msg}")
+
+        if request.uuid and not GatewayUtils.is_valid_uuid(request.uuid):
+            errmsg = (f"{failure_prefix}: "
+                      f"Invalid UUID '{request.uuid}' "
+                      f"(expected format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)")
+            self.logger.error(errmsg)
+            return pb2.nsid_status(status=errno.EINVAL, error_message=errmsg)
+
+        kv_add_ns_args = {}
+        kv_add_ns_args["nqn"] = request.subsystem_nqn
+        kv_add_ns_args["kvdev_name"] = request.kv_name
+        if request.nsid:
+            kv_add_ns_args["nsid"] = request.nsid
+        if request.uuid:
+            kv_add_ns_args["uuid"] = request.uuid
+        if request.anagrpid:
+            kv_add_ns_args["anagrpid"] = request.anagrpid
+        omap_lock = self.omap_lock.get_omap_lock_to_use(context)
+        with omap_lock:
+            try:
+                nsid = self.spdk_rpc_client.nvmf_subsystem_add_kv_ns(**kv_add_ns_args)
+                self.logger.debug(f"nvmf_subsystem_add_kv_ns: {nsid}")
+            except Exception as ex:
+                self.logger.exception(failure_prefix)
+                errmsg = f"{failure_prefix}:\n{ex}"
+                resp = self.parse_json_exeption(ex)
+                status = errno.EINVAL
+                if resp:
+                    status = resp["code"]
+                    errmsg = f"{failure_prefix}: {resp['message']}"
+                return pb2.nsid_status(status=status, error_message=errmsg)
+
+        # Just in case SPDK failed with no exception
+        if not nsid:
+            self.logger.error(failure_prefix)
+            return pb2.nsid_status(status=errno.EINVAL, error_message=failure_prefix)
+
+        return pb2.nsid_status(status=0, error_message="", nsid=nsid)
+
+    def kvdev_add_namespace(self, request, context=None):
+        """Adds a KV namespace to a subsystem."""
+        err_prefix = "Failure adding KV namespace"
+        return self.execute_grpc_function(self.kvdev_add_namespace_safe,
+                                          request, context, err_prefix)
+
+    def namespace_set_kv_exec_allowlist_safe(self, request, context):
+
+        assert self.rpc_lock.locked(), "RPC is unlocked when calling " \
+                                       "namespace_set_kv_exec_allowlist_safe()"
+        peer_msg = self.get_peer_message(context)
+        if not request.subsystem_nqn:
+            errmsg = "Failure setting namespace KV exec allowlist, missing subsysten NQN"
+            self.logger.error(errmsg)
+            return pb2.req_status(status=errno.EINVAL, error_message=errmsg)
+        if not request.nsid:
+            errmsg = "Failure setting namespace KV exec allowlist, missing NSID"
+            self.logger.error(errmsg)
+            return pb2.req_status(status=errno.EINVAL, error_message=errmsg)
+        if request.nsid <= 0:
+            errmsg = "Failure setting namespace KV exec allowlist, NSID must be positive"
+            self.logger.error(errmsg)
+            return pb2.req_status(status=errno.EINVAL, error_message=errmsg)
+        failure_prefix = f"Failure setting namespace {request.nsid} on " \
+                         f"{request.subsystem_nqn} KV exec allowlist"
+
+        self.logger.info(f"Received request to set namespace {request.nsid} "
+                         f"on {request.subsystem_nqn} KV exec allowlist, "
+                         f"allowlist: {request.allowlist}, "
+                         f"context: {context}{peer_msg}")
+
+        allowlist = []
+        for one_allow in request.allowlist:
+            if not one_allow:
+                continue
+            allow_parts = one_allow.split(":", 1)
+            entry = {"op_id": int(allow_parts[0])}
+            if len(allow_parts) > 1 and allow_parts[1] != "":
+                entry["binding"] = allow_parts[1]
+            allowlist.append(entry)
+        omap_lock = self.omap_lock.get_omap_lock_to_use(context)
+        with omap_lock:
+            try:
+                ret = self.spdk_rpc_client.nvmf_ns_set_kv_exec_allowlist(
+                    nqn=request.subsystem_nqn,
+                    nsid=request.nsid,
+                    allowlist=allowlist,
+                )
+                self.logger.debug(f"nvmf_ns_set_kv_exec_allowlist: {ret}")
+            except Exception as ex:
+                self.logger.exception(failure_prefix)
+                errmsg = f"{failure_prefix}:\n{ex}"
+                resp = self.parse_json_exeption(ex)
+                status = errno.EINVAL
+                if resp:
+                    status = resp["code"]
+                    errmsg = f"{failure_prefix}: {resp['message']}"
+                return pb2.req_status(status=status, error_message=errmsg)
+
+        # Just in case SPDK failed with no exception
+        if not ret:
+            self.logger.error(failure_prefix)
+            return pb2.req_status(status=errno.EINVAL, error_message=failure_prefix)
+
+        return pb2.req_status(status=0, error_message="")
+
+    def namespace_set_kv_exec_allowlist(self, request, context=None):
+        """Set namespace KV exec allowlist."""
+        err_prefix = "Failure setting namespace KV exec allowlist: "
+        return self.execute_grpc_function(self.namespace_set_kv_exec_allowlist_safe,
+                                          request, context, err_prefix)
+
     def namespace_change_load_balancing_group_safe(self, request, context,
                                                    persistent=False, maintenance=False):
         """Changes a namespace load balancing group."""
@@ -5126,7 +5388,11 @@ class GatewayService(pb2_grpc.GatewayServicer):
                     self.subsystem_nsid_bdev_and_uuid.remove_namespace(subsys_nqn)
                 for n in ns_list:
                     nsid = n["nsid"]
-                    bdev_name = n["bdev_name"]
+                    bdev_name = None
+                    try:
+                        bdev_name = n["bdev_name"]
+                    except KeyError:
+                        pass
                     if request.nsid and request.nsid != n["nsid"]:
                         self.logger.debug(f'Filter out namespace {n["nsid"]} which is '
                                           f'different than requested nsid {request.nsid}')
@@ -8809,14 +9075,19 @@ class GatewayService(pb2_grpc.GatewayServicer):
                     s["created_without_key"] = \
                         self.host_info.was_subsystem_created_without_key(s["nqn"])
                     for n in s["namespaces"]:
-                        bdev = n["bdev_name"]
+                        bdev = None
                         nonce = None
-                        with self.shared_state_lock:
-                            if bdev in self.bdev_cluster:
-                                if self.bdev_cluster[bdev] in self.cluster_nonce:
-                                    nonce = self.cluster_nonce[self.bdev_cluster[bdev]]
-                        if nonce is not None:
-                            n["nonce"] = nonce
+                        try:
+                            bdev = n["bdev_name"]
+                        except KeyError:
+                            pass
+                        if bdev:
+                            with self.shared_state_lock:
+                                if bdev in self.bdev_cluster:
+                                    if self.bdev_cluster[bdev] in self.cluster_nonce:
+                                        nonce = self.cluster_nonce[self.bdev_cluster[bdev]]
+                            if nonce is not None:
+                                n["nonce"] = nonce
                         find_ret = self.subsystem_nsid_bdev_and_uuid.find_namespace(
                             s["nqn"], n["nsid"])
                         n["auto_visible"] = find_ret.auto_visible
